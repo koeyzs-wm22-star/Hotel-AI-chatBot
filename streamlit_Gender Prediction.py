@@ -16,10 +16,16 @@ st.caption("欢迎咨询入住、退房、早餐、Wi-Fi 等常见问题！")
 # 动态天气 API 获取函数 (使用免费开源的 Open-Meteo API)
 def get_realtime_weather():
     try:
-        # 吉隆坡坐标 (3.139, 101.6869) - 你可根据实际需求调整 latitude 和 longitude
-        url = "https://api.open-meteo.com/v1/forecast?latitude=3.139&longitude=101.6869&current_weather=true"
+        # 吉隆坡坐标 (3.139, 101.6869)
+        # 请求包含当前实时天气 + 每日最高最低温/天气代码 (daily)
+        url = (
+            "https://api.open-meteo.com/v1/forecast?"
+            "latitude=3.139&longitude=101.6869&"
+            "current_weather=true&"
+            "daily=weathercode,temperature_2m_max,temperature_2m_min&"
+            "timezone=auto"
+        )
         
-        # 模拟浏览器 User-Agent 避免被 API 拦截
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
@@ -28,33 +34,43 @@ def get_realtime_weather():
         
         if response.status_code == 200:
             data = response.json()
-            current = data.get("current_weather", {})
-            temp = current.get("temperature", "N/A")
-            windspeed = current.get("windspeed", "N/A")
-            weather_code = current.get("weathercode", 0)
             
-            # WMO 天气代码简易映射
-            weather_desc = "晴朗"
-            if weather_code in [1, 2, 3]:
-                weather_desc = "多云"
-            elif weather_code in [45, 48]:
-                weather_desc = "有雾"
-            elif weather_code in [51, 53, 55, 61, 63, 65, 80, 81, 82, 95]:
-                weather_desc = "阵雨/降雨"
-                
-            return (
-                f"🌤️ **酒店当地实时天气**：\n\n"
-                f"- **当前天气状况**：{weather_desc}\n"
-                f"- **当前气温**：{temp}°C\n"
-                f"- **风速**：{windspeed} km/h\n\n"
+            # WMO 天气代码简易映射表
+            def parse_wmo(code):
+                if code in [0, 1]: return "☀️ 晴朗"
+                elif code in [2, 3]: return "⛅ 多云"
+                elif code in [45, 48]: return "🌫️ 有雾"
+                elif code in [51, 53, 55, 61, 63, 65, 80, 81, 82, 95]: return "🌧️ 阵雨/降雨"
+                return "🌤️ 晴到多云"
+
+            # 1. 实时天气
+            current = data.get("current_weather", {})
+            curr_temp = current.get("temperature", "N/A")
+            curr_code = current.get("weathercode", 0)
+            
+            # 2. 每日预报 (Index 0: 今天, Index 1: 明天, Index 2: 后天)
+            daily = data.get("daily", {})
+            dates = daily.get("time", ["今天", "明天", "后天"])
+            codes = daily.get("weathercode", [0, 0, 0])
+            max_temps = daily.get("temperature_2m_max", [0, 0, 0])
+            min_temps = daily.get("temperature_2m_min", [0, 0, 0])
+
+            # 格式化输出
+            reply = (
+                f"🌤️ **酒店当地天气预报**：\n\n"
+                f"📌 **当前实时**：{parse_wmo(curr_code)} | 气温 {curr_temp}°C\n"
+                f"-----------------------------------\n"
+                f"📅 **今天 ({dates[0]})**：{parse_wmo(codes[0])} | 🌡️ {min_temps[0]}°C ~ {max_temps[0]}°C\n"
+                f"📅 **明天 ({dates[1]})**：{parse_wmo(codes[1])} | 🌡️ {min_temps[1]}°C ~ {max_temps[1]}°C\n"
+                f"📅 **后天 ({dates[2]})**：{parse_wmo(codes[2])} | 🌡️ {min_temps[2]}°C ~ {max_temps[2]}°C\n\n"
                 f"💡 出门请注意天气变化，如有需要可在酒店前台免费借用雨伞！"
             )
+            return reply
         else:
-            return f"⚠️ 天气服务请求失败 (HTTP 状态码: {response.status_code})。当前酒店当地气温舒适，大约 28°C-32°C。"
+            return f"⚠️ 天气服务请求失败 (HTTP 状态码: {response.status_code})。"
             
     except Exception as e:
-        # 如果出错，直接把错误原因打印出来方便排查
-        return f"⚠️ 天气 API 访问异常，原因: {e}。\n☀️ 当前酒店当地天气适宜出行，如需借用雨伞请联系前台。"
+        return f"⚠️ 天气 API 访问异常，原因: {e}。"
 
 # 2. 安全的文本清洗函数
 def clean_text(text):
