@@ -13,9 +13,21 @@ st.caption("欢迎咨询入住、退房、早餐、Wi-Fi 等常见问题！")
 # 2. 训练模型（使用 @st.cache_resource 避免重复训练）
 @st.cache_resource
 def load_and_train_model():
-    with open('dataset.json', 'r', encoding='utf-8') as f:
-        data = json.load(f)
+    dataset_file = 'dataset.json'
     
+    # 自动容错：如果文件损坏或不存在，自动写入默认的 json
+    try:
+        with open(dataset_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception as e:
+        st.error(f"⚠️ 读取 dataset.json 失败（可能是 JSON 语法错误），已自动加载默认测试数据！错误详情: {e}")
+        data = {
+            "intents": [
+                {"tag": "greet", "patterns": ["hi", "hello", "你好"], "responses": ["您好！请问有什么可以帮您？"]},
+                {"tag": "breakfast", "patterns": ["what time for breakfast", "早餐几点"], "responses": ["早餐时间为 06:30 - 10:00。"]}
+            ]
+        }
+
     X, y = [], []
     responses_map = {}
     
@@ -26,13 +38,12 @@ def load_and_train_model():
             X.append(pattern.lower().strip())
             y.append(tag)
             
-    # 特征融合：词组 (Word) + 字符 (Char-WB)
+    # 特征融合 (支持短单词如 hi, tmr 以及中英文)
     union = FeatureUnion([
         ('word_tf', TfidfVectorizer(ngram_range=(1, 2), token_pattern=r'(?u)\b\w+\b')),
         ('char_tf', TfidfVectorizer(ngram_range=(2, 4), analyzer='char_wb'))
     ])
     
-    # 使用 LogisticRegression 替代 SVC，天然支持 predict_proba
     model = make_pipeline(union, LogisticRegression())
     model.fit(X, y)
     return model, responses_map
