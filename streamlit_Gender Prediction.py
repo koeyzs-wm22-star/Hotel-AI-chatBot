@@ -20,7 +20,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 注入高奢米白/香槟金 UI CSS 样式
+# 注入 UI CSS 样式
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
@@ -100,6 +100,33 @@ st.markdown("""
         border-radius: 12px;
         margin-bottom: 12px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+
+    /* 电话内线呼叫卡片样式 */
+    .call-card {
+        background: #FFFFFF;
+        border: 1px solid #B8965C;
+        border-radius: 10px;
+        padding: 16px;
+        margin-top: 10px;
+        box-shadow: 0 4px 15px rgba(184, 150, 92, 0.1);
+    }
+
+    .call-btn {
+        display: inline-block;
+        background-color: #B8965C;
+        color: white !important;
+        padding: 8px 16px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+        margin-top: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .call-btn:hover {
+        background-color: #967843;
     }
 
     #MainMenu {visibility: hidden;}
@@ -257,7 +284,7 @@ components.html(auto_slider_html, height=230)
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ==========================================
-# 3. 侧边栏服务面板
+# 3. 侧边栏服务面板与【一键内部电话 Quick Call】
 # ==========================================
 with st.sidebar:
     st.markdown('<div class="sidebar-title">🏨 GUEST ESSENTIALS</div>', unsafe_allow_html=True)
@@ -265,19 +292,17 @@ with st.sidebar:
     <div class="sidebar-card">
         <p style="margin:0; font-size:12px; color:#4A4A4A;"><b>🕒 Check-in:</b> 15:00 PM</p>
         <p style="margin:4px 0 0 0; font-size:12px; color:#4A4A4A;"><b>🕚 Check-out:</b> 12:00 PM</p>
-        <p style="margin:4px 0 0 0; font-size:12px; color:#4A4A4A;"><b>📞 Concierge Desk:</b> Dial '0'</p>
+        <p style="margin:4px 0 0 0; font-size:12px; color:#4A4A4A;"><b>📞 Direct In-Room Dial:</b> Press '0'</p>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="sidebar-title">💎 VIP PREMIER SERVICES</div>', unsafe_allow_html=True)
-    st.markdown("""
-    <div class="sidebar-card">
-        <p style="margin:0; font-size:12px; color:#4A4A4A;">• 24/7 In-Room Fine Dining</p>
-        <p style="margin:4px 0 0 0; font-size:12px; color:#4A4A4A;">• Executive Spa & Thermal Suite</p>
-        <p style="margin:4px 0 0 0; font-size:12px; color:#4A4A4A;">• Airport Chauffeur Transfer</p>
-    </div>
-    """, unsafe_allow_html=True)
+    # 快捷内部呼叫专区
+    st.markdown('<div class="sidebar-title">📞 DIRECT INTERNAL CALL</div>', unsafe_allow_html=True)
+    dept = st.selectbox("Select Department:", ["Front Desk (Ext 0)", "Private Butler (Ext 801)", "Housekeeping (Ext 802)", "In-Room Dining (Ext 803)"])
+    if st.button("📞 Call Department Now", use_container_width=True):
+        st.toast(f"📞 Connecting you to {dept}... Please pick up your in-room phone.")
 
+    st.markdown('<br>', unsafe_allow_html=True)
     if st.button("🧹 Clear Chat History", use_container_width=True):
         st.session_state.messages = [
             {"role": "assistant", "content": "Greetings! It is my absolute pleasure to welcome you to The Grand Apex. How may I assist your stay today?"}
@@ -285,7 +310,7 @@ with st.sidebar:
         st.rerun()
 
 # ==========================================
-# 4. 实时天气响应（增加奢华定制话术）
+# 4. 实时天气响应
 # ==========================================
 def get_realtime_weather():
     try:
@@ -333,7 +358,35 @@ def get_realtime_weather():
         return "☀️ Weather forecast updated: Mild and suitable for local exploration. May I reserve a table at our Sky Garden Lounge for you?"
 
 # ==========================================
-# 5. 模型训练与高级话术映射
+# 5. Internal Call（内部呼叫）专用卡片生成器
+# ==========================================
+def render_internal_call_card():
+    return """
+📞 **Grand Apex Internal Communications Desk**
+
+I can connect you directly with our specialized hotel departments. Please choose an option below or pick up your in-room landline phone:
+
+<div class="call-card">
+    <div style="font-weight:600; font-size:14px; color:#1A1A1A;">🛎️ Grand Concierge & Front Desk</div>
+    <div style="font-size:12px; color:#666;">For immediate check-in, check-out, or room key requests.</div>
+    <a href="tel:0" class="call-btn">📞 Dial Extension '0'</a>
+</div>
+
+<div class="call-card">
+    <div style="font-weight:600; font-size:14px; color:#1A1A1A;">🤵 Executive Butler Service</div>
+    <div style="font-size:12px; color:#666;">For luggage unpacking, shoe shine, or VIP room preferences.</div>
+    <a href="tel:801" class="call-btn">📞 Dial Extension '801'</a>
+</div>
+
+<div class="call-card">
+    <div style="font-weight:600; font-size:14px; color:#1A1A1A;">🧹 Housekeeping & Amenities</div>
+    <div style="font-size:12px; color:#666;">For extra towels, pillow menu, or room cleaning service.</div>
+    <a href="tel:802" class="call-btn">📞 Dial Extension '802'</a>
+</div>
+"""
+
+# ==========================================
+# 6. 模型训练与高级话术映射（加入 Internal Call 识别）
 # ==========================================
 def clean_text(text):
     if not text or not isinstance(text, str):
@@ -343,7 +396,6 @@ def clean_text(text):
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
-# 精心打磨的 5 星级尊享回复映射表
 LUXURY_RESPONSES = {
     "greet": "Greetings! It is my absolute pleasure to welcome you to The Grand Apex Resort & Spa. How may I be of service to you today?",
     "ask_wifi": "📶 **High-Speed Complimentary Wi-Fi**\n\nPlease select the network **`GrandApex_Guest`**. No password is required—simply enter your Room Number and Last Name on the login page.\n\n*If you require high-bandwidth access for video conferencing, our IT Butler is available 24/7 by dialing '0'.*",
@@ -371,9 +423,15 @@ def load_and_train_model():
                 X.append(cleaned_pattern)
                 y.append(tag)
 
+    # 包含 internal_call 的语料模式
+    call_patterns = ["call front desk", "call butler", "internal call", "phone number", "contact housekeeping", "call hotel", "dial front desk", "phone front desk", "打电话", "联系前台", "呼叫管家", "打给前台", "内线电话"]
+    for p in call_patterns:
+        X.append(clean_text(p))
+        y.append("internal_call")
+
     if not X:
-        X = ["hi", "wifi", "weather", "breakfast", "spa", "checkin"]
-        y = ["greet", "ask_wifi", "ask_weather", "ask_breakfast", "ask_spa", "ask_checkin"]
+        X = ["hi", "wifi", "weather", "breakfast", "spa", "checkin", "call front desk"]
+        y = ["greet", "ask_wifi", "ask_weather", "ask_breakfast", "ask_spa", "ask_checkin", "internal_call"]
 
     union = FeatureUnion([
         ('word_tf', TfidfVectorizer(ngram_range=(1, 3), token_pattern=r'\S+')),
@@ -387,7 +445,7 @@ def load_and_train_model():
 model = load_and_train_model()
 
 # ==========================================
-# 6. 对话引擎逻辑
+# 7. 对话渲染与逻辑触发
 # ==========================================
 if "messages" not in st.session_state:
     st.session_state.messages = [
@@ -404,7 +462,6 @@ def get_bot_response(user_input):
     confidence = probs[max_idx]
     predicted_tag = model.classes_[max_idx]
     
-    # 智能阀门识别
     if confidence < 0.18:
         return (
             "I apologize, but I want to ensure you receive the most precise assistance. "
@@ -415,31 +472,32 @@ def get_bot_response(user_input):
     if predicted_tag == "ask_weather":
         return get_realtime_weather()
 
+    if predicted_tag == "internal_call":
+        return render_internal_call_card()
+
     return LUXURY_RESPONSES.get(predicted_tag, "Thank you for bringing this to my attention. Our Concierge Desk is entirely at your service.")
 
-# ==========================================
-# 7. 对话渲染（加入拟真流式打字与对话体验）
-# ==========================================
+# 渲染聊天记录
 for msg in st.session_state.messages:
-    st.chat_message(msg["role"]).write(msg["content"])
+    st.chat_message(msg["role"]).write(msg["content"], unsafe_allow_html=True)
 
-if prompt := st.chat_input("Ask about Wi-Fi, Breakfast, Spa, Dining, or Weather..."):
-    # 用户发言
+if prompt := st.chat_input("Ask about Wi-Fi, Breakfast, Spa, Internal Call, or Weather..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
     
-    # AI 准备回复（带有礼宾部思考打字动画效果）
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         full_response = get_bot_response(prompt)
         
-        # 拟真打字效果，提升尊贵感与互动感
-        typed_text = ""
-        for chunk in full_response.split(" "):
-            typed_text += chunk + " "
-            time.sleep(0.02)
-            message_placeholder.markdown(typed_text + "▌")
-        
-        message_placeholder.markdown(full_response)
+        # 判断是否包含 HTML (如 internal_call 卡片)，如果是 HTML 就直接渲染，不走打字机效果
+        if "<div class=" in full_response:
+            message_placeholder.markdown(full_response, unsafe_allow_html=True)
+        else:
+            typed_text = ""
+            for chunk in full_response.split(" "):
+                typed_text += chunk + " "
+                time.sleep(0.02)
+                message_placeholder.markdown(typed_text + "▌")
+            message_placeholder.markdown(full_response)
         
     st.session_state.messages.append({"role": "assistant", "content": full_response})
