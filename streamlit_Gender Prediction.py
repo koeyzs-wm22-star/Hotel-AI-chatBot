@@ -307,6 +307,7 @@ with st.sidebar:
         st.session_state.messages = [
             {"role": "assistant", "content": "Greetings! It is my absolute pleasure to welcome you to The Grand Apex. How may I assist your stay today?"}
         ]
+        st.session_state.awaiting_spa_booking = False  # 重置状态
         st.rerun()
 
 # ==========================================
@@ -517,18 +518,34 @@ if "messages" not in st.session_state:
         {"role": "assistant", "content": "Greetings! It is my absolute pleasure to welcome you to The Grand Apex Resort & Spa. How may I assist your stay today?"}
     ]
 
+if "awaiting_spa_booking" not in st.session_state:
+    st.session_state.awaiting_spa_booking = False
+
 def get_bot_response(user_input):
     cleaned_input = clean_text(user_input)
     
+    # 1. 空值安全防护
     if not cleaned_input or not cleaned_input.strip():
         return "Greetings! How may I assist your stay at The Grand Apex today?"
+
+    # 🌟 2. 【上下文拦截】：如果上一句是在引导 SPA 预约，直接接管这一句！
+    if st.session_state.awaiting_spa_booking:
+        st.session_state.awaiting_spa_booking = False  # 收到预约信息，关闭等待状态
+        return (
+            "✨ **Spa Reservation Request Received!**\n\n"
+            f"Thank you for providing your details: **\"{user_input.strip()}\"**.\n\n"
+            "Our Spa Concierge team is currently holding this slot for you and will send a final confirmation directly to your room display shortly.\n\n"
+            "💆‍♂️ *We look forward to welcoming you to the Apex Executive Spa on Floor 5!*"
+        )
         
     try:
+        # 3. 模型预测
         probs = model.predict_proba([cleaned_input])[0]
         max_idx = np.argmax(probs)
         confidence = probs[max_idx]
         predicted_tag = model.classes_[max_idx]
         
+        # 4. 低置信度兜底
         if confidence < 0.18:
             return (
                 "I apologize, but I want to ensure you receive the most precise assistance. "
@@ -536,6 +553,11 @@ def get_bot_response(user_input):
                 "You may also dial **'0'** on your room phone to connect with the Front Desk."
             )
         
+        # 5. 特定意图触发并设置上下文状态
+        if predicted_tag in ["ask_spa", "ask_spa_booking"]:
+            st.session_state.awaiting_spa_booking = True  # 🌟 开启等待状态，准备接下一个回答！
+            return LUXURY_RESPONSES.get(predicted_tag)
+
         if predicted_tag == "ask_weather":
             return get_realtime_weather()
 
