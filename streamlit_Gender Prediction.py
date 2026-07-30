@@ -2,7 +2,7 @@ import json
 import numpy as np
 import streamlit as st
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 
 # 1. 页面基本配置
@@ -33,8 +33,10 @@ def load_and_train_model():
     ])
     
     # 构建 SVM 模型
-    model = make_pipeline(union, SVC(kernel='linear', probability=True))
-    model.fit(X, y)
+   model = make_pipeline(
+    union,
+    LogisticRegression() # 默认支持 predict_proba
+)
     return model, responses_map
 
 # 3. 意图预测与置信度过滤
