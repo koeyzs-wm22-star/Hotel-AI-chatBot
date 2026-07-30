@@ -126,16 +126,21 @@ def get_bot_response(user_input):
     confidence = probs[max_idx]
     predicted_tag = model.classes_[max_idx]
     
-    # 多轮连贯问题处理逻辑
-    if predicted_tag == "ask_wifi_steps" and st.session_state.last_intent != "ask_wifi":
-        st.session_state.last_intent = "ask_wifi"
-        return responses_map.get("ask_wifi_steps", "请问您需要哪项服务的具体步骤？（例如 Wi-Fi 连接流程）")
-
     # 低置信度 Fallback
     if confidence < 0.18:
-        return "抱歉，我不太理解您的意思。您是想询问退房时间、早餐还是 Wi-Fi 密码呢？"
+        return "抱歉，我不太理解您的意思。您是想询问退房时间、早餐、Wi-Fi 还是天气预报呢？"
     
     st.session_state.last_intent = predicted_tag
+
+    # 💡 关键修复：只要标签是 ask_weather，直接调用 API 函数返回结果！
+    if predicted_tag == "ask_weather":
+        return get_realtime_weather()
+        
+    # 多轮连贯问题处理逻辑（Wi-Fi 追问）
+    if predicted_tag == "ask_wifi_steps" and st.session_state.last_intent != "ask_wifi":
+        return responses_map.get("ask_wifi_steps", "请问您需要哪项服务的具体步骤？（例如 Wi-Fi 连接流程）")
+
+    # 其他普通意图正常返回 responses_map 里的内容
     return responses_map.get(predicted_tag, "抱歉，系统出错了。")
 
 # 4. Streamlit 渲染界面
