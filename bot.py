@@ -27,13 +27,33 @@ if "page" not in st.session_state:
 
 # Chat History State
 if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {
-            "role": "assistant",
-            "content": "Greetings! It is my absolute pleasure to welcome you to The Grand Apex Resort & Spa. How may I assist your stay today?",
-            "time": datetime.datetime.now().strftime("%I:%M %p")
-        }
-    ]
+    # 💬 Chat Messages Container (Left/Right Bubbles)
+        chat_box = st.container(height=450)
+        with chat_box:
+            for msg in st.session_state.messages:
+                role = msg["role"]
+                timestamp = msg.get("time", datetime.datetime.now().strftime("%I:%M %p"))
+
+                if role == "user":
+                    # Clean single-line HTML prevents Streamlit from breaking tags into markdown paragraphs
+                    user_html = (
+                        f'<div class="chat-row-user">'
+                        f'<div class="chat-bubble bubble-user">'
+                        f'<div>{msg["content"]}</div>'
+                        f'<div class="msg-meta">{timestamp}</div>'
+                        f'</div></div>'
+                    )
+                    st.markdown(user_html, unsafe_allow_html=True)
+                else:
+                    # Clean single-line HTML for assistant responses
+                    assistant_html = (
+                        f'<div class="chat-row-assistant">'
+                        f'<div class="chat-bubble bubble-assistant">'
+                        f'<div>{msg["content"]}</div>'
+                        f'<div class="msg-meta">{timestamp}</div>'
+                        f'</div></div>'
+                    )
+                    st.markdown(assistant_html, unsafe_allow_html=True)
 
 # Spa Reservation Context States
 if "awaiting_spa_booking" not in st.session_state:
