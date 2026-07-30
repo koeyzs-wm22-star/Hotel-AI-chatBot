@@ -385,56 +385,62 @@ I can connect you directly with our specialized hotel departments. Please choose
 </div>
 """
 
+import re
+
 def validate_spa_booking(text):
     text_lower = text.lower()
     
-    # 1. 检测人数 (如 2pax, 1 person, 3 people, 2位, 2人)
+    # 1. 检测人数 (如 1pax, 2 pax, 3 people, 1 person, 2位, 2人)
     has_pax = bool(re.search(r'\b\d+\s*(pax|people|person|guests?|位|人)\b', text_lower))
     
-    # 2. 检测日期/时间 (如 2:30pm, 20:30, 31 july, today, tomorrow, 3pm, 15:00)
+    # 2. 清理日期格式 (例如把 1/8/2026, 31/07/2026, 2026-08-01 替换掉，避免数字干扰时间解析)
+    cleaned_time_text = re.sub(r'\b\d{1,4}[-/\.]\d{1,2}[-/\.]\d{1,4}\b', '', text_lower)
+    
+    # 3. 检测日期/时间的存在性
     has_time_or_date = bool(re.search(
         r'(\b\d{1,2}(:\d{2})?\s*(am|pm)\b|\b\d{1,2}:\d{2}\b|\btoday\b|\btomorrow\b|\b\d{1,2}(st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b|\b(july|august|september|october|november|december|january|february|march|april|june)\b|\b\d+\s*(点|点半|号)\b)', 
         text_lower
-    ))
+    )) or bool(re.search(r'\b\d{1,4}[-/\.]\d{1,2}[-/\.]\d{1,4}\b', text_lower))
     
     # -------------------------------------------------------------
-    # 校验 A: 时间超限检查 (超过 20:30 PM 不接受预约)
+    # 校验 A: 时间超限检查 (在清理过日期的文本中提取实际时间)
     # -------------------------------------------------------------
-    # 尝试提取时间数字 (支持 15:00, 20:30, 9pm, 9:30pm 等)
-    time_match = re.search(r'\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b', text_lower)
+    # 匹配显式时间格式，例如 11:30am, 2:30pm, 20:30, 9pm
+    time_match = re.search(r'\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b|\b(\d{1,2}):(\d{2})\b', cleaned_time_text)
+    
     if time_match:
-        hour = int(time_match.group(1))
-        minute = int(time_match.group(2)) if time_match.group(2) else 0
-        ampm = time_match.group(3)
-        
-        # 转为 24 小时制
-        if ampm == 'pm' and hour < 12:
-            hour += 12
-        elif ampm == 'am' and hour == 12:
-            hour = 0
+        if time_match.group(1): # 带 am/pm 的格式 (如 11:30am)
+            hour = int(time_match.group(1))
+            minute = int(time_match.group(2)) if time_match.group(2) else 0
+            ampm = time_match.group(3)
             
-        # 排除普通的年份/日期数字干扰（如 2026 年）
-        if 0 <= hour <= 23 and 0 <= minute <= 59 and not (hour == 20 and minute == 26):
-            # 晚于 20:30
-            if hour > 20 or (hour == 20 and minute > 30):
-                return {
-                    "valid": False,
-                    "msg": "⏰ **Appointment Hours Exceeded**\n\nOur last available spa treatment slot starts at **20:30 PM** (Spa closes at 22:00 PM).\n\nCould you please choose a time **between 09:00 AM and 20:30 PM**?"
-                }
-            # 早于 09:00
-            elif hour < 9:
-                return {
-                    "valid": False,
-                    "msg": "⏰ **Spa Operating Hours Alert**\n\nOur Spa opens at **09:00 AM** daily. Please select a time after 09:00 AM."
-                }
+            if ampm == 'pm' and hour < 12:
+                hour += 12
+            elif ampm == 'am' and hour == 12:
+                hour = 0
+        else: # 24小时制格式 (如 20:30)
+            hour = int(time_match.group(4))
+            minute = int(time_match.group(5))
+            
+        # 验证时间范围 (09:00 AM - 20:30 PM)
+        if hour > 20 or (hour == 20 and minute > 30):
+            return {
+                "valid": False,
+                "msg": "⏰ **Appointment Hours Exceeded**\n\nOur last available spa treatment slot starts at **20:30 PM** (Spa closes at 22:00 PM).\n\nCould you please choose a time **between 09:00 AM and 20:30 PM**?"
+            }
+        elif hour < 9:
+            return {
+                "valid": False,
+                "msg": "⏰ **Spa Operating Hours Alert**\n\nOur Spa opens at **09:00 AM** daily. Please select a time after 09:00 AM."
+            }
 
     # -------------------------------------------------------------
-    # 校验 B: 必须同时提供【时间/日期】与【人数】
+    # 校验 B: 完整性检查 (必须包含【时间和日期】与【人数】)
     # -------------------------------------------------------------
     if not has_pax and not has_time_or_date:
         return {
             "valid": False,
-            "msg": "⚠️ **Details Missing**\n\nTo process your spa reservation, we require **both** your preferred date/time (e.g., *Today at 3:00 PM*) and the number of guests (e.g., *2 pax*).\n\nPlease reply with both details!"
+            "msg": "⚠️ **Details Missing**\n\nTo process your spa reservation, we require **both** your preferred date/time (e.g., *1/8/2026 11:30am*) and the number of guests (e.g., *1 pax*).\n\nPlease reply with both details!"
         }
     elif not has_pax:
         return {
