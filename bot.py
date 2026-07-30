@@ -25,35 +25,15 @@ st.set_page_config(
 if "page" not in st.session_state:
     st.session_state.page = "dashboard"
 
-# Chat History State
+# Chat History State (FIXED: Properly initializing message list)
 if "messages" not in st.session_state:
-    # 💬 Chat Messages Container (Left/Right Bubbles)
-        chat_box = st.container(height=450)
-        with chat_box:
-            for msg in st.session_state.messages:
-                role = msg["role"]
-                timestamp = msg.get("time", datetime.datetime.now().strftime("%I:%M %p"))
-
-                if role == "user":
-                    # Clean single-line HTML prevents Streamlit from breaking tags into markdown paragraphs
-                    user_html = (
-                        f'<div class="chat-row-user">'
-                        f'<div class="chat-bubble bubble-user">'
-                        f'<div>{msg["content"]}</div>'
-                        f'<div class="msg-meta">{timestamp}</div>'
-                        f'</div></div>'
-                    )
-                    st.markdown(user_html, unsafe_allow_html=True)
-                else:
-                    # Clean single-line HTML for assistant responses
-                    assistant_html = (
-                        f'<div class="chat-row-assistant">'
-                        f'<div class="chat-bubble bubble-assistant">'
-                        f'<div>{msg["content"]}</div>'
-                        f'<div class="msg-meta">{timestamp}</div>'
-                        f'</div></div>'
-                    )
-                    st.markdown(assistant_html, unsafe_allow_html=True)
+    st.session_state.messages = [
+        {
+            "role": "assistant",
+            "content": "Greetings! It is my absolute pleasure to welcome you to The Grand Apex Resort & Spa. How may I assist your stay today?",
+            "time": datetime.datetime.now().strftime("%I:%M %p")
+        }
+    ]
 
 # Spa Reservation Context States
 if "awaiting_spa_booking" not in st.session_state:
@@ -767,42 +747,20 @@ elif st.session_state.page == "chat":
         <div class="glass-card">
             <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #7A7570; margin-bottom: 12px; font-weight: 600;">DUTY BUTLER</div>
             <div class="status-badge"><span class="pulse-dot"></span> Duty Butler: Online</div>
-            <div style="font-size: 16px; font-weight: 700; color: #1A1A1A; margin-top: 14px;">Jean-Luc Moreau</div>
-            <div style="font-size: 12px; color: #666666;">Private Butler Service (Ext. 801)</div>
+            <div style="margin-top: 15px; font-size: 13px; color: #555;">
+                Welcome, <strong>Mr. Vance</strong>.<br>
+                How may our concierge team complement your stay today?
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("""
-        <div class="glass-card">
-            <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #7A7570; margin-bottom: 12px; font-weight: 600;">DIRECT INTERNAL DIAL</div>
-            <div style="font-size: 12px; color: #4A4A4A; margin-bottom: 4px;"><b>🛎️ Front Desk:</b> Ext '0'</div>
-            <div style="font-size: 12px; color: #4A4A4A; margin-bottom: 4px;"><b>🤵 Butler Service:</b> Ext '801'</div>
-            <div style="font-size: 12px; color: #4A4A4A;"><b>🧹 Housekeeping:</b> Ext '802'</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        if st.button("🔄 Reset Chat Conversation", use_container_width=True):
+        if st.button("🗑️ Reset Chat Session", use_container_width=True):
             clear_chat_history()
             st.rerun()
 
     # --- MAIN CHAT AREA ---
     with main_chat_col:
-        st.markdown("##### ⚡ Quick Service Requests")
-        q1, q2, q3, q4 = st.columns(4)
-        
-        prompt_input = None
-        if q1.button("💆 Reserve Spa", use_container_width=True):
-            prompt_input = "I would like to book a luxury facial treatment at the spa."
-        if q2.button("🌤️ Today Weather", use_container_width=True):
-            prompt_input = "What is the weather forecast today at the resort?"
-        if q3.button("📶 Suite WiFi Key", use_container_width=True):
-            prompt_input = "What is the high-speed WiFi password for Suite 1808?"
-        if q4.button("📞 Internal Dial", use_container_width=True):
-            prompt_input = "Show me the internal phone extension numbers."
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # 💬 Chat Messages Container (Left/Right Bubbles)
+        # Chat Messages Box
         chat_box = st.container(height=450)
         with chat_box:
             for msg in st.session_state.messages:
@@ -810,42 +768,42 @@ elif st.session_state.page == "chat":
                 timestamp = msg.get("time", datetime.datetime.now().strftime("%I:%M %p"))
 
                 if role == "user":
-                    st.markdown(f"""
-                    <div class="chat-row-user">
-                        <div class="chat-bubble bubble-user">
-                            {msg['content']}
-                            <div class="msg-meta">{timestamp}</div>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    user_html = (
+                        f'<div class="chat-row-user">'
+                        f'<div class="chat-bubble bubble-user">'
+                        f'<div>{msg["content"]}</div>'
+                        f'<div class="msg-meta">{timestamp}</div>'
+                        f'</div></div>'
+                    )
+                    st.markdown(user_html, unsafe_allow_html=True)
                 else:
-                    st.markdown(f"""
-                    <div class="chat-row-assistant">
-                        <div class="chat-bubble bubble-assistant">
-                            {msg['content']}
-                            <div class="msg-meta">{timestamp}</div>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    assistant_html = (
+                        f'<div class="chat-row-assistant">'
+                        f'<div class="chat-bubble bubble-assistant">'
+                        f'<div>{msg["content"]}</div>'
+                        f'<div class="msg-meta">{timestamp}</div>'
+                        f'</div></div>'
+                    )
+                    st.markdown(assistant_html, unsafe_allow_html=True)
 
-        user_text = st.chat_input("Ask about Wi-Fi, Breakfast, Spa, Services, or Internal Call...")
-        if prompt_input:
-            user_text = prompt_input
-
-        if user_text:
-            curr_time = datetime.datetime.now().strftime("%I:%M %p")
+        # Chat Input Bar
+        user_prompt = st.chat_input("Type your request here (e.g., Wi-Fi, Spa, Breakfast)...")
+        if user_prompt:
+            current_time = datetime.datetime.now().strftime("%I:%M %p")
+            
+            # Save User Message
             st.session_state.messages.append({
-                "role": "user",
-                "content": user_text,
-                "time": curr_time
+                "role": "user", 
+                "content": user_prompt,
+                "time": current_time
             })
             
-            # Predict Response via Machine Learning Pipeline
-            bot_reply = get_bot_response(user_text)
-
+            # Generate & Save Response
+            response_text = get_bot_response(user_prompt)
             st.session_state.messages.append({
-                "role": "assistant",
-                "content": bot_reply,
-                "time": datetime.datetime.now().strftime("%I:%M %p")
+                "role": "assistant", 
+                "content": response_text,
+                "time": current_time
             })
+            
             st.rerun()
