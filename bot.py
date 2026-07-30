@@ -26,92 +26,51 @@ if "awaiting_spa_booking" not in st.session_state:
 if "latest_spa_booking" not in st.session_state:
     st.session_state.latest_spa_booking = None
 
-# Custom CSS for Luxury Visual Chat Elements
-# Custom CSS with Light/White Chatbot Bubble Overlay
+# Custom CSS for Bright & Luxury Executive Theme
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
-    /* Global Dark Luxury Theme */
+    /* Global Bright Luxury Ivory & Gold Theme */
     .stApp {
-        background: radial-gradient(circle at top center, #1C1A17 0%, #0B0A09 100%);
-        color: #FDFBF7;
+        background: linear-gradient(180deg, #FAF8F5 0%, #F3EFEA 100%);
+        color: #1A1A1A;
         font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
-    /* Glassmorphism Luxury Container */
+    /* Glassmorphism Luxury Container - Bright White & Warm Gold */
     .glass-card {
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(16px);
-        border: 1px solid rgba(184, 150, 92, 0.22);
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(184, 150, 92, 0.35);
         border-radius: 18px;
         padding: 24px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        box-shadow: 0 8px 30px rgba(184, 150, 92, 0.08);
         margin-bottom: 20px;
     }
 
-    /* ==========================================
-       💬 CHATBOT MESSAGES - WHITE COLOR OVERRIDE
-       ========================================== */
-    
-    /* Chat Container Box Background */
-    [data-testid="stChatInput"] {
-        background-color: #FFFFFF !important;
-        border-radius: 12px !important;
-    }
-
-    /* Chat Message Bubbles - Clean White Background */
-    [data-testid="stChatMessage"] {
-        background-color: #FFFFFF !important;
-        color: #1A1A1A !important;
-        border: 1px solid #E2E8F0 !important;
-        border-radius: 16px !important;
-        padding: 16px 20px !important;
-        margin-bottom: 12px !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
-    }
-
-    /* Ensure text inside chat messages is crisp dark gray/black */
-    [data-testid="stChatMessage"] p, 
-    [data-testid="stChatMessage"] div,
-    [data-testid="stChatMessage"] span,
-    [data-testid="stChatMessage"] li {
-        color: #1A1A1A !important;
-    }
-
-    /* Bold accent headings inside white chat bubbles */
-    [data-testid="stChatMessage"] strong,
-    [data-testid="stChatMessage"] h1,
-    [data-testid="stChatMessage"] h2,
-    [data-testid="stChatMessage"] h3 {
-        color: #8C6B2D !important; /* Deep Luxury Gold for text headers */
-    }
-
-    /* 🎟️ VISUAL SPA TICKET / CONFIRMATION CARD (Inside White Bubble) */
+    /* 🎟️ VISUAL SPA TICKET / CONFIRMATION CARD (Luxe Gold/Ivory Card) */
     .spa-pass-card {
-        background: linear-gradient(135deg, #1C1A17 0%, #0F0E0D 100%) !important;
-        border: 1px solid #B8965C !important;
-        border-radius: 14px;
+        background: linear-gradient(135deg, #FFFFFF 0%, #FAF6F0 100%) !important;
+        border: 2px solid #C5A059 !important;
+        border-radius: 16px;
         padding: 20px;
         margin: 12px 0;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+        box-shadow: 0 10px 25px rgba(197, 160, 89, 0.15) !important;
         position: relative;
         overflow: hidden;
-    }
-    .spa-pass-card * {
-        color: #FFFFFF !important; /* Keep internal voucher text crisp light */
     }
     .spa-pass-card::before {
         content: "";
         position: absolute;
         top: 0; right: 0; width: 6px; height: 100%;
-        background: #B8965C;
+        background: linear-gradient(180deg, #D4AF37 0%, #AA7C11 100%);
     }
     .pass-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px dashed rgba(184, 150, 92, 0.4);
+        border-bottom: 1px dashed rgba(197, 160, 89, 0.5);
         padding-bottom: 10px;
         margin-bottom: 12px;
     }
@@ -119,7 +78,7 @@ st.markdown("""
         font-family: 'Cormorant Garamond', serif;
         font-size: 20px;
         font-weight: 700;
-        color: #B8965C !important;
+        color: #8C6B2D !important;
         letter-spacing: 1px;
     }
     .pass-grid {
@@ -130,40 +89,38 @@ st.markdown("""
     }
     .pass-label {
         font-size: 10px;
-        color: #A09D9A !important;
+        color: #7A7570 !important;
         letter-spacing: 1.5px;
         text-transform: uppercase;
     }
     .pass-val {
         font-size: 14px;
         font-weight: 600;
-        color: #FFFFFF !important;
+        color: #1A1A1A !important;
     }
 
-    /* 📶 VISUAL WIFI ACCESS CARD (Light Theme Adapter) */
+    /* 📶 VISUAL WIFI ACCESS CARD */
     .wifi-card {
-        background: #F8F5F0 !important;
-        border: 1px solid #CDBA96 !important;
+        background: #FAF6F0 !important;
+        border: 1px solid #C5A059 !important;
         border-radius: 12px;
         padding: 16px;
         margin: 10px 0;
-    }
-    .wifi-card * {
-        color: #1A1A1A !important;
     }
 
     /* Executive Concierge Header */
     .header-title {
         font-family: 'Cormorant Garamond', serif;
-        font-size: 32px;
+        font-size: 34px;
         font-weight: 700;
-        color: #FFFFFF;
+        color: #1A1A1A;
     }
     .header-sub {
         font-size: 13px;
-        color: #B8965C;
+        color: #8C6B2D;
         letter-spacing: 2px;
         text-transform: uppercase;
+        font-weight: 600;
     }
 
     /* Status Pulse Pill */
@@ -171,9 +128,9 @@ st.markdown("""
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        background: rgba(46, 125, 50, 0.15);
-        border: 1px solid #4CAF50;
-        color: #81C784;
+        background: #E8F5E9;
+        border: 1px solid #2E7D32;
+        color: #1B5E20;
         padding: 5px 14px;
         border-radius: 20px;
         font-size: 12px;
@@ -182,30 +139,79 @@ st.markdown("""
     .pulse-dot {
         width: 8px;
         height: 8px;
-        background-color: #4CAF50;
+        background-color: #2E7D32;
         border-radius: 50%;
-        box-shadow: 0 0 8px #4CAF50;
+        box-shadow: 0 0 8px #2E7D32;
     }
 
     .info-tag {
-        background: rgba(184, 150, 92, 0.12);
-        border: 1px solid rgba(184, 150, 92, 0.3);
-        color: #E2C48C;
+        background: rgba(197, 160, 89, 0.12);
+        border: 1px solid rgba(197, 160, 89, 0.4);
+        color: #725318;
         padding: 4px 12px;
         border-radius: 6px;
         font-size: 12px;
-        font-weight: 500;
+        font-weight: 600;
     }
 
     .guest-name {
         font-family: 'Cormorant Garamond', serif;
         font-size: 58px;
         font-weight: 700;
-        color: #FFFFFF;
+        color: #1A1A1A;
         margin: 5px 0;
     }
 
-    /* Hide Default Elements */
+    /* ==========================================
+       💬 CHATBOT MESSAGES & INPUT OVERRIDE
+       ========================================== */
+    [data-testid="stChatInput"] {
+        background-color: #FFFFFF !important;
+        border: 1px solid #C5A059 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    [data-testid="stChatMessage"] {
+        background-color: #FFFFFF !important;
+        color: #1A1A1A !important;
+        border: 1px solid rgba(197, 160, 89, 0.3) !important;
+        border-radius: 16px !important;
+        padding: 16px 20px !important;
+        margin-bottom: 12px !important;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    [data-testid="stChatMessage"] p, 
+    [data-testid="stChatMessage"] div,
+    [data-testid="stChatMessage"] span,
+    [data-testid="stChatMessage"] li {
+        color: #1A1A1A !important;
+    }
+
+    [data-testid="stChatMessage"] strong,
+    [data-testid="stChatMessage"] h1,
+    [data-testid="stChatMessage"] h2,
+    [data-testid="stChatMessage"] h3 {
+        color: #8C6B2D !important;
+    }
+
+    /* Custom Streamlit Buttons Styling */
+    .stButton>button {
+        border: 1px solid #C5A059 !important;
+        background: #FFFFFF !important;
+        color: #8C6B2D !important;
+        font-weight: 600 !important;
+        border-radius: 10px !important;
+        transition: all 0.2s ease !important;
+    }
+    .stButton>button:hover {
+        background: #C5A059 !important;
+        color: #FFFFFF !important;
+        box-shadow: 0 4px 12px rgba(197, 160, 89, 0.3) !important;
+    }
+
+    /* Hide Default Streamlit Chrome */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
@@ -257,17 +263,17 @@ def validate_spa_booking(text):
 # ==========================================
 if st.session_state.page == "dashboard":
     st.markdown("""
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(184, 150, 92, 0.25); padding-bottom: 15px; margin-bottom: 30px;">
-        <div style="font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 700; color: #B8965C; letter-spacing: 3px;">THE GRAND APEX RESORT & SPA</div>
-        <div style="font-size: 13px; color: #A09D9A; letter-spacing: 1px;">SUITE 1808 &nbsp;|&nbsp; 10:42 AM &nbsp;|&nbsp; 28°C SUNNY</div>
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(197, 160, 89, 0.3); padding-bottom: 15px; margin-bottom: 30px;">
+        <div style="font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 700; color: #8C6B2D; letter-spacing: 3px;">THE GRAND APEX RESORT & SPA</div>
+        <div style="font-size: 13px; color: #555555; letter-spacing: 1px; font-weight: 500;">SUITE 1808 &nbsp;|&nbsp; 10:42 AM &nbsp;|&nbsp; 28°C SUNNY</div>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("""
     <div style="text-align: center; margin: 20px 0 40px 0;">
-        <div style="font-size: 13px; letter-spacing: 4px; text-transform: uppercase; color: #B8965C;">Welcome to Your Suite</div>
+        <div style="font-size: 13px; letter-spacing: 4px; text-transform: uppercase; color: #8C6B2D; font-weight: 600;">Welcome to Your Suite</div>
         <div class="guest-name">Mr. Alexander Vance</div>
-        <div style="display: inline-block; background: rgba(184, 150, 92, 0.15); border: 1px solid #B8965C; color: #E2C48C; padding: 6px 18px; border-radius: 20px; font-size: 13px; font-weight: 600;">⭐ Apex Platinum VIP Honor Guest</div>
+        <div style="display: inline-block; background: #FAF6F0; border: 1px solid #C5A059; color: #8C6B2D; padding: 6px 18px; border-radius: 20px; font-size: 13px; font-weight: 600;">⭐ Apex Platinum VIP Honor Guest</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -275,18 +281,18 @@ if st.session_state.page == "dashboard":
     with c1:
         st.markdown("""
         <div class="glass-card">
-            <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #A09D9A; margin-bottom: 8px;">📅 Stay Duration</div>
-            <div style="font-size: 20px; font-weight: 600; color: #FFF;">28 Jul – 03 Aug 2026</div>
-            <div style="font-size: 12px; color: #B8965C; margin-top: 6px;">Express Check-out @ 12:00 PM</div>
+            <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #7A7570; margin-bottom: 8px; font-weight: 600;">📅 Stay Duration</div>
+            <div style="font-size: 20px; font-weight: 700; color: #1A1A1A;">28 Jul – 03 Aug 2026</div>
+            <div style="font-size: 12px; color: #8C6B2D; margin-top: 6px; font-weight: 500;">Express Check-out @ 12:00 PM</div>
         </div>
         """, unsafe_allow_html=True)
 
     with c2:
         st.markdown("""
         <div class="glass-card">
-            <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #A09D9A; margin-bottom: 8px;">👑 Apex Rewards</div>
-            <div style="font-size: 20px; font-weight: 600; color: #FFF;">48,500 Points</div>
-            <div style="font-size: 12px; color: #B8965C; margin-top: 6px;">Eligible for Complimentary Spa Service</div>
+            <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #7A7570; margin-bottom: 8px; font-weight: 600;">👑 Apex Rewards</div>
+            <div style="font-size: 20px; font-weight: 700; color: #1A1A1A;">48,500 Points</div>
+            <div style="font-size: 12px; color: #8C6B2D; margin-top: 6px; font-weight: 500;">Eligible for Complimentary Spa Service</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -294,25 +300,24 @@ if st.session_state.page == "dashboard":
         booking_disp = st.session_state.latest_spa_booking or "No Active Bookings"
         st.markdown(f"""
         <div class="glass-card">
-            <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #A09D9A; margin-bottom: 8px;">🧖 Active Reservations</div>
-            <div style="font-size: 18px; font-weight: 600; color: #FFF;">{booking_disp}</div>
-            <div style="font-size: 12px; color: #B8965C; margin-top: 6px;">{"⏳ Request Under Review" if st.session_state.latest_spa_booking else "Ready for Booking"}</div>
+            <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #7A7570; margin-bottom: 8px; font-weight: 600;">🧖 Active Reservations</div>
+            <div style="font-size: 18px; font-weight: 700; color: #1A1A1A;">{booking_disp}</div>
+            <div style="font-size: 12px; color: #8C6B2D; margin-top: 6px; font-weight: 500;">{"⏳ Request Under Review" if st.session_state.latest_spa_booking else "Ready for Booking"}</div>
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     _, btn_col, _ = st.columns([1, 2, 1])
     with btn_col:
-        if st.button("💬 Open Private Executive Concierge", use_container_width=True, type="primary"):
+        if st.button("💬 Open Private Executive Concierge", use_container_width=True):
             st.session_state.page = "chat"
             st.rerun()
 
 
 # ==========================================
-# 4. PAGE 2: Ultra-Premium Concierge Suite
+# 4. PAGE 2: Bright Concierge Suite
 # ==========================================
 elif st.session_state.page == "chat":
-    # Top Navigation Row
     top_c1, top_c2 = st.columns([4, 1])
     with top_c1:
         st.markdown("""
@@ -328,34 +333,33 @@ elif st.session_state.page == "chat":
 
     st.divider()
 
-    # Layout: Left Sidebar Context (1) + Main Chat (2.8)
     left_col, main_chat_col = st.columns([1, 2.8], gap="large")
 
     # --- LEFT SIDEBAR: Suite Context & Status ---
     with left_col:
         st.markdown("""
         <div class="glass-card">
-            <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #A09D9A; margin-bottom: 12px;">BUTLER ASSIGNMENT</div>
+            <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #7A7570; margin-bottom: 12px; font-weight: 600;">BUTLER ASSIGNMENT</div>
             <div class="status-badge"><span class="pulse-dot"></span> Duty Butler: Online</div>
-            <div style="font-size: 15px; font-weight: 600; color: #FFF; margin-top: 14px;">Jean-Luc Moreau</div>
-            <div style="font-size: 12px; color: #A09D9A;">Private Butler Service (Ext. 801)</div>
+            <div style="font-size: 16px; font-weight: 700; color: #1A1A1A; margin-top: 14px;">Jean-Luc Moreau</div>
+            <div style="font-size: 12px; color: #666666;">Private Butler Service (Ext. 801)</div>
         </div>
         """, unsafe_allow_html=True)
 
         st.markdown("""
         <div class="glass-card">
-            <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #A09D9A; margin-bottom: 12px;">SUITE DETAILS</div>
+            <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #7A7570; margin-bottom: 12px; font-weight: 600;">SUITE DETAILS</div>
             <div style="margin-bottom: 10px;">
-                <div style="font-size: 11px; color: #A09D9A;">GUEST</div>
-                <div style="font-weight: 600; font-size: 14px; color: #FFF;">Mr. Alexander Vance</div>
+                <div style="font-size: 11px; color: #7A7570;">GUEST</div>
+                <div style="font-weight: 700; font-size: 14px; color: #1A1A1A;">Mr. Alexander Vance</div>
             </div>
             <div style="margin-bottom: 10px;">
-                <div style="font-size: 11px; color: #A09D9A;">ACCOMMODATION</div>
-                <div style="font-weight: 600; font-size: 14px; color: #FFF;">Suite 1808 (Penthouse)</div>
+                <div style="font-size: 11px; color: #7A7570;">ACCOMMODATION</div>
+                <div style="font-weight: 700; font-size: 14px; color: #1A1A1A;">Suite 1808 (Penthouse)</div>
             </div>
             <div>
-                <div style="font-size: 11px; color: #A09D9A;">TIER STATUS</div>
-                <div style="color: #B8965C; font-weight: 600; font-size: 13px;">⭐ Apex Platinum</div>
+                <div style="font-size: 11px; color: #7A7570;">TIER STATUS</div>
+                <div style="color: #8C6B2D; font-weight: 700; font-size: 13px;">⭐ Apex Platinum</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -363,15 +367,14 @@ elif st.session_state.page == "chat":
         booking_status = st.session_state.latest_spa_booking or "None"
         st.markdown(f"""
         <div class="glass-card">
-            <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #A09D9A; margin-bottom: 12px;">ACTIVE SUITE REQUESTS</div>
-            <div style="font-size: 13px; color: #FFF; margin-bottom: 6px;"><b>Spa Reservation:</b></div>
+            <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #7A7570; margin-bottom: 12px; font-weight: 600;">ACTIVE SUITE REQUESTS</div>
+            <div style="font-size: 13px; color: #1A1A1A; margin-bottom: 6px;"><b>Spa Reservation:</b></div>
             <div class="info-tag">{booking_status}</div>
         </div>
         """, unsafe_allow_html=True)
 
     # --- MAIN CHAT AREA ---
     with main_chat_col:
-        # Quick Action Prompt Chips
         st.markdown("##### ⚡ Direct Concierge Requests")
         q1, q2, q3, q4 = st.columns(4)
         
@@ -387,14 +390,12 @@ elif st.session_state.page == "chat":
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # Message Stream Container
         chat_box = st.container(height=450)
         with chat_box:
             for msg in st.session_state.messages:
                 with st.chat_message(msg["role"]):
                     st.markdown(msg["content"], unsafe_allow_html=True)
 
-        # Capture Input
         user_text = st.chat_input("Message your Virtual Concierge...")
         if prompt_input:
             user_text = prompt_input
@@ -402,7 +403,6 @@ elif st.session_state.page == "chat":
         if user_text:
             st.session_state.messages.append({"role": "user", "content": user_text})
             
-            # Response Logic with VISUAL COMPONENTS
             if st.session_state.awaiting_spa_booking:
                 check = validate_spa_booking(user_text)
                 if not check["valid"]:
@@ -411,14 +411,14 @@ elif st.session_state.page == "chat":
                     st.session_state.awaiting_spa_booking = False
                     st.session_state.latest_spa_booking = user_text.strip()
                     
-                    # 🎟️ VISUAL TICKET CARD RESPONSE
+                    # 🎟️ BRIGHT LUXURY SPA PASS CARD
                     reply = f"""
 ✨ **Spa Reservation Confirmed**
 
 <div class="spa-pass-card">
     <div class="pass-header">
         <div class="pass-title">🧖 EXECUTIVE SPA VIP PASS</div>
-        <div style="background: rgba(230, 81, 0, 0.2); border: 1px solid #FF9800; color: #FFB74D; font-size: 11px; padding: 2px 10px; border-radius: 12px; font-weight: 600;">
+        <div style="background: #FFF3E0; border: 1px solid #EF6C00; color: #E65100; font-size: 11px; padding: 2px 10px; border-radius: 12px; font-weight: 700;">
             ⏳ PENDING VERIFICATION
         </div>
     </div>
@@ -440,7 +440,7 @@ elif st.session_state.page == "chat":
             <div class="pass-val">Apex Spa (5th Floor)</div>
         </div>
     </div>
-    <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 11px; color: #A09D9A;">
+    <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(197, 160, 89, 0.3); font-size: 11px; color: #666666;">
         💡 <i>Your reservation status has been updated on your Suite Smart Hub.</i>
     </div>
 </div>
@@ -458,26 +458,25 @@ I would be delighted to arrange your spa treatment, Mr. Vance! Please reply with
 2. **Number of Guests** (e.g., `1 pax`)
 """
                 elif "wifi" in text_low:
-                    # 📶 VISUAL WIFI CARD
+                    # 📶 BRIGHT WIFI ACCESS CARD
                     reply = """
 📶 **Executive WiFi Network Credentials**
 
 <div class="wifi-card">
-    <div style="font-size: 11px; color: #A09D9A; text-transform: uppercase; letter-spacing: 1.5px;">SUITE 1808 DEDICATED HIGH-SPEED NETWORK</div>
+    <div style="font-size: 11px; color: #7A7570; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600;">SUITE 1808 DEDICATED HIGH-SPEED NETWORK</div>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
         <div>
-            <div style="font-size: 12px; color: #A09D9A;">NETWORK NAME</div>
-            <div style="font-size: 16px; font-weight: 700; color: #FFF;">GrandApex_VIP_1808</div>
+            <div style="font-size: 12px; color: #7A7570;">NETWORK NAME</div>
+            <div style="font-size: 16px; font-weight: 700; color: #1A1A1A;">GrandApex_VIP_1808</div>
         </div>
         <div>
-            <div style="font-size: 12px; color: #A09D9A;">PASSWORD</div>
-            <div style="font-size: 16px; font-weight: 700; color: #B8965C;">ApexVIP1808</div>
+            <div style="font-size: 12px; color: #7A7570;">PASSWORD</div>
+            <div style="font-size: 16px; font-weight: 700; color: #8C6B2D;">ApexVIP1808</div>
         </div>
     </div>
 </div>
 """
                 elif "breakfast" in text_low or "dining" in text_low:
-                    # 🍽️ VISUAL DINING CARDS
                     reply = """
 🍽️ **In-Room Executive Dining Options**
 
