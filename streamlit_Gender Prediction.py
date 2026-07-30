@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import time
 import requests
 import numpy as np
 import streamlit as st
@@ -24,7 +25,6 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
 
-    /* 全局背景：优雅温暖的米白色渐变 */
     .stApp {
         background: linear-gradient(180deg, #FDFBF7 0%, #F4EFE6 100%);
         color: #2C2A29;
@@ -102,26 +102,25 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
     }
 
-    /* 隐藏默认 Header & Footer */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# 1. 顶部 Header 渲染
+# 1. 顶部 Header
 st.markdown("""
 <div class="hotel-header">
     <div class="hotel-subtitle">WELCOMING YOU TO THE ULTIMATE LUXURY</div>
     <div class="hotel-title">THE GRAND APEX</div>
     <div class="gold-divider"></div>
     <div style="font-size: 12px; color: #666; font-style: italic;">
-        "Excellence in Every Detail — Dedicated Concierge Service"
+        "Excellence in Every Detail — Dedicated Virtual Concierge Desk"
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. 长方形自动轮播广告（HTML5/JS Component）
+# 2. 长方形 21:9 自动轮播 Banner 组件
 # ==========================================
 auto_slider_html = """
 <!DOCTYPE html>
@@ -131,11 +130,10 @@ auto_slider_html = """
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: transparent; }
     
-    /* 长方形轮播卡片容器 (21:9 比例) */
     .slider-container {
         position: relative;
         width: 100%;
-        height: 220px; /* 控制极佳的长方形高度 */
+        height: 220px;
         border-radius: 14px;
         overflow: hidden;
         box-shadow: 0 8px 20px rgba(0,0,0,0.12);
@@ -152,11 +150,8 @@ auto_slider_html = """
         background-position: center;
     }
 
-    .slide.active {
-        opacity: 1;
-    }
+    .slide.active { opacity: 1; }
 
-    /* 图片上的半透明暗色遮罩与文本 */
     .slide-overlay {
         position: absolute;
         bottom: 0;
@@ -181,7 +176,6 @@ auto_slider_html = """
         font-weight: 300;
     }
 
-    /* 底部圆点指示器 */
     .dots-container {
         position: absolute;
         bottom: 12px;
@@ -208,21 +202,18 @@ auto_slider_html = """
 <body>
 
 <div class="slider-container">
-    <!-- Slide 1 -->
     <div class="slide active" style="background-image: url('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80');">
         <div class="slide-overlay">
-            <div class="slide-title">👑 Royal Apex Penthouse Suite</div>
+            <div class="slide-title">👑 Grand Apex Penthouse Suite</div>
             <div class="slide-desc">Panoramic skyline views with private butler service.</div>
         </div>
     </div>
-    <!-- Slide 2 -->
     <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80');">
         <div class="slide-overlay">
             <div class="slide-title">🏊 Infinity Sky Pool & Spa</div>
             <div class="slide-desc">Heated rooftop pool overlooking the heart of the city.</div>
         </div>
     </div>
-    <!-- Slide 3 -->
     <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=1200&q=80');">
         <div class="slide-overlay">
             <div class="slide-title">🍽️ Michelin Three-Star Dining</div>
@@ -246,7 +237,6 @@ auto_slider_html = """
     function showSlide(index) {
         slides.forEach(s => s.classList.remove('active'));
         dots.forEach(d => d.classList.remove('active'));
-        
         slides[index].classList.add('active');
         dots[index].classList.add('active');
     }
@@ -256,7 +246,6 @@ auto_slider_html = """
         showSlide(currentSlide);
     }
 
-    // 每 3.5 秒自动平滑切换 Slide
     setInterval(nextSlide, 3500);
 </script>
 
@@ -264,13 +253,11 @@ auto_slider_html = """
 </html>
 """
 
-# 渲染自定义 HTML5/JS 组件（设置高度为 230px）
 components.html(auto_slider_html, height=230)
-
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ==========================================
-# 3. 侧边栏 (Sidebar) 5星级酒店服务信息
+# 3. 侧边栏服务面板
 # ==========================================
 with st.sidebar:
     st.markdown('<div class="sidebar-title">🏨 GUEST ESSENTIALS</div>', unsafe_allow_html=True)
@@ -278,7 +265,7 @@ with st.sidebar:
     <div class="sidebar-card">
         <p style="margin:0; font-size:12px; color:#4A4A4A;"><b>🕒 Check-in:</b> 15:00 PM</p>
         <p style="margin:4px 0 0 0; font-size:12px; color:#4A4A4A;"><b>🕚 Check-out:</b> 12:00 PM</p>
-        <p style="margin:4px 0 0 0; font-size:12px; color:#4A4A4A;"><b>📞 Concierge:</b> Dial '0'</p>
+        <p style="margin:4px 0 0 0; font-size:12px; color:#4A4A4A;"><b>📞 Concierge Desk:</b> Dial '0'</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -286,19 +273,19 @@ with st.sidebar:
     st.markdown("""
     <div class="sidebar-card">
         <p style="margin:0; font-size:12px; color:#4A4A4A;">• 24/7 In-Room Fine Dining</p>
-        <p style="margin:4px 0 0 0; font-size:12px; color:#4A4A4A;">• Executive Spa & Sauna Retreat</p>
-        <p style="margin:4px 0 0 0; font-size:12px; color:#4A4A4A;">• Private Airport Limousine Transfer</p>
+        <p style="margin:4px 0 0 0; font-size:12px; color:#4A4A4A;">• Executive Spa & Thermal Suite</p>
+        <p style="margin:4px 0 0 0; font-size:12px; color:#4A4A4A;">• Airport Chauffeur Transfer</p>
     </div>
     """, unsafe_allow_html=True)
 
     if st.button("🧹 Clear Chat History", use_container_width=True):
         st.session_state.messages = [
-            {"role": "assistant", "content": "Greetings! I am your Grand Apex Virtual Concierge. How may I assist your stay today?"}
+            {"role": "assistant", "content": "Greetings! It is my absolute pleasure to welcome you to The Grand Apex. How may I assist your stay today?"}
         ]
         st.rerun()
 
 # ==========================================
-# 4. 动态天气 API 获取函数
+# 4. 实时天气响应（增加奢华定制话术）
 # ==========================================
 def get_realtime_weather():
     try:
@@ -314,12 +301,11 @@ def get_realtime_weather():
         
         if response.status_code == 200:
             data = response.json()
-            
             def parse_wmo(code):
-                if code in [0, 1]: return "☀️ Clear Skies"
-                elif code in [2, 3]: return "⛅ Partly Cloudy"
-                elif code in [45, 48]: return "🌫️ Foggy"
-                elif code in [51, 53, 55, 61, 63, 65, 80, 81, 82, 95]: return "🌧️ Showers / Rain"
+                if code in [0, 1]: return "☀️ Clear & Sunny"
+                elif code in [2, 3]: return "⛅ Light Clouds"
+                elif code in [45, 48]: return "🌫️ Mist & Fog"
+                elif code in [51, 53, 55, 61, 63, 65, 80, 81, 82, 95]: return "🌧️ Gentle Rain"
                 return "🌤️ Pleasant"
 
             current = data.get("current_weather", {})
@@ -328,26 +314,26 @@ def get_realtime_weather():
             
             daily = data.get("daily", {})
             dates = daily.get("time", ["Today", "Tomorrow", "Day After"])
-            codes = daily.get("weathercode", [0, 0, 0])
             max_temps = daily.get("temperature_2m_max", [0, 0, 0])
             min_temps = daily.get("temperature_2m_min", [0, 0, 0])
 
             reply = (
-                f"🌤️ **Grand Apex Concierge Weather Desk**\n\n"
-                f"📌 **Current Status**: {parse_wmo(curr_code)} | **Temperature**: {curr_temp}°C\n\n"
-                f"• **Today ({dates[0]})**: {parse_wmo(codes[0])} | 🌡️ {min_temps[0]}°C to {max_temps[0]}°C\n"
-                f"• **Tomorrow ({dates[1]})**: {parse_wmo(codes[1])} | 🌡️ {min_temps[1]}°C to {max_temps[1]}°C\n"
-                f"• **Day After ({dates[2]})**: {parse_wmo(codes[2])} | 🌡️ {min_temps[2]}°C to {max_temps[2]}°C\n\n"
-                f"💼 *Complimentary luxury umbrellas are available at the Grand Concierge Desk upon request.*"
+                f"🌤️ **Grand Apex Advisory Weather Service**\n\n"
+                f"It is currently **{curr_temp}°C** with **{parse_wmo(curr_code)}** over the resort grounds.\n\n"
+                f"**3-Day Horizon:**\n"
+                f"• **Today ({dates[0]})**: {min_temps[0]}°C to {max_temps[0]}°C\n"
+                f"• **Tomorrow ({dates[1]})**: {min_temps[1]}°C to {max_temps[1]}°C\n"
+                f"• **Day After ({dates[2]})**: {min_temps[2]}°C to {max_temps[2]}°C\n\n"
+                f"🌂 *Should you wish to step out for sightseeing, luxury umbrellas and chauffeur-driven limousines are available at the Concierge Desk.*"
             )
             return reply
         else:
-            return "☀️ The current climate at Grand Apex is pleasantly warm (28°C - 32°C). Please feel free to reach out to Concierge for further assistance."
-    except Exception as e:
-        return f"☀️ Currently pleasant and suitable for local exploration."
+            return "☀️ The weather around Grand Apex is delightfully warm. Please let me know if you would like me to reserve an outdoor table for lunch."
+    except Exception:
+        return "☀️ Weather forecast updated: Mild and suitable for local exploration. May I reserve a table at our Sky Garden Lounge for you?"
 
 # ==========================================
-# 5. 文本清洗与模型训练逻辑
+# 5. 模型训练与高级话术映射
 # ==========================================
 def clean_text(text):
     if not text or not isinstance(text, str):
@@ -357,23 +343,28 @@ def clean_text(text):
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
+# 精心打磨的 5 星级尊享回复映射表
+LUXURY_RESPONSES = {
+    "greet": "Greetings! It is my absolute pleasure to welcome you to The Grand Apex Resort & Spa. How may I be of service to you today?",
+    "ask_wifi": "📶 **High-Speed Complimentary Wi-Fi**\n\nPlease select the network **`GrandApex_Guest`**. No password is required—simply enter your Room Number and Last Name on the login page.\n\n*If you require high-bandwidth access for video conferencing, our IT Butler is available 24/7 by dialing '0'.*",
+    "ask_breakfast": "🥂 **Michelin-Star Breakfast Service**\n\nBreakfast is served daily at **The Grand Atrium** on Floor 1 from **06:30 AM to 10:30 AM**.\n\nAlternatively, we offer **24-Hour In-Room Fine Dining**. Would you like me to share today's Continental or Asian Gourmet Breakfast Menu?",
+    "ask_checkin": "🗝️ **Check-in & Check-out Policies**\n\n• **Standard Check-in**: 15:00 PM\n• **Standard Check-out**: 12:00 PM (Noon)\n\n*If you require an extended Late Check-out or priority luggage storage, please inform me, and I will coordinate with the Front Desk immediately.*",
+    "ask_spa": "🧖‍♀️ **Apex Executive Wellness & Spa**\n\nLocated on Floor 5, our Spa offers signature aromatherapy, hot stone massages, and thermal sauna suites. Open daily from **09:00 AM to 22:00 PM**.\n\nWould you like me to reserve a relaxation session for you this afternoon?",
+    "ask_dining": "🍽️ **Gastronomic Experiences**\n\nThe Grand Apex features three award-winning venues:\n1. **L'Aura (Floor 48)** - Michelin French Fine Dining\n2. **Sakura Sky Lounge (Floor 49)** - Contemporary Omakase & Cocktail Bar\n3. **The Atrium (Floor 1)** - All-Day International Buffet\n\nShall I secure a table for you at any of these restaurants?"
+}
+
 @st.cache_resource
 def load_and_train_model():
     dataset_file = 'dataset.json'
     try:
         with open(dataset_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
-    except Exception as e:
+    except Exception:
         data = {"intents": []}
 
     X, y = [], []
-    responses_map = {}
-    
     for intent in data.get('intents', []):
         tag = intent.get('tag')
-        responses = intent.get('responses', [""])
-        responses_map[tag] = responses[0] if responses else "Allow us to check this for you."
-        
         for pattern in intent.get('patterns', []):
             cleaned_pattern = clean_text(pattern)
             if cleaned_pattern:
@@ -381,13 +372,8 @@ def load_and_train_model():
                 y.append(tag)
 
     if not X:
-        X = ["hi", "wifi", "weather"]
-        y = ["greet", "ask_wifi", "ask_weather"]
-        responses_map = {
-            "greet": "Welcome to The Grand Apex Resort.",
-            "ask_wifi": "Wi-Fi: GrandApex_Guest",
-            "ask_weather": "API_WEATHER"
-        }
+        X = ["hi", "wifi", "weather", "breakfast", "spa", "checkin"]
+        y = ["greet", "ask_wifi", "ask_weather", "ask_breakfast", "ask_spa", "ask_checkin"]
 
     union = FeatureUnion([
         ('word_tf', TfidfVectorizer(ngram_range=(1, 3), token_pattern=r'\S+')),
@@ -396,54 +382,64 @@ def load_and_train_model():
     
     model = make_pipeline(union, LogisticRegression(C=5.0))
     model.fit(X, y)
-    return model, responses_map
+    return model
 
-model, responses_map = load_and_train_model()
+model = load_and_train_model()
 
 # ==========================================
-# 6. Session State 与预测逻辑
+# 6. 对话引擎逻辑
 # ==========================================
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Greetings! I am your Grand Apex Virtual Concierge. How may I be of service to you today?"}
+        {"role": "assistant", "content": "Greetings! It is my absolute pleasure to welcome you to The Grand Apex Resort & Spa. How may I assist your stay today?"}
     ]
-
-if "last_intent" not in st.session_state:
-    st.session_state.last_intent = None
 
 def get_bot_response(user_input):
     cleaned_input = clean_text(user_input)
     if not cleaned_input:
-        return "Please feel free to ask any question regarding our amenities or services."
+        return "It would be my delight to assist you. Please feel free to ask about our suites, spa, fine dining, or guest services."
         
     probs = model.predict_proba([cleaned_input])[0]
     max_idx = np.argmax(probs)
     confidence = probs[max_idx]
     predicted_tag = model.classes_[max_idx]
     
+    # 智能阀门识别
     if confidence < 0.18:
-        return "I apologize, but I did not quite catch that. Would you like information regarding Check-in/Out, High-Speed Wi-Fi, Breakfast, or Weather Forecasts? You may also press '0' on your room phone to connect with Front Desk."
+        return (
+            "I apologize, but I want to ensure you receive the most precise assistance. "
+            "Could you please clarify if your query pertains to **Wi-Fi**, **Breakfast & Dining**, **Spa Reservations**, or **Check-in/Out**?\n\n"
+            "Alternatively, you may press **'0'** on your room telephone to speak directly with our Duty Manager."
+        )
     
-    st.session_state.last_intent = predicted_tag
-
     if predicted_tag == "ask_weather":
         return get_realtime_weather()
-        
-    if predicted_tag == "ask_wifi_steps" and st.session_state.last_intent != "ask_wifi":
-        return responses_map.get("ask_wifi_steps", "May I confirm if you require step-by-step guidance for our Wi-Fi connection?")
 
-    return responses_map.get(predicted_tag, "Thank you for asking. Our team is at your service.")
+    return LUXURY_RESPONSES.get(predicted_tag, "Thank you for bringing this to my attention. Our Concierge Desk is entirely at your service.")
 
 # ==========================================
-# 7. 对话界面渲染
+# 7. 对话渲染（加入拟真流式打字与对话体验）
 # ==========================================
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
-if prompt := st.chat_input("Ask about Wi-Fi, Breakfast, Spa, Check-in, or Weather..."):
+if prompt := st.chat_input("Ask about Wi-Fi, Breakfast, Spa, Dining, or Weather..."):
+    # 用户发言
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
     
-    bot_reply = get_bot_response(prompt)
-    st.session_state.messages.append({"role": "assistant", "content": bot_reply})
-    st.chat_message("assistant").write(bot_reply)
+    # AI 准备回复（带有礼宾部思考打字动画效果）
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        full_response = get_bot_response(prompt)
+        
+        # 拟真打字效果，提升尊贵感与互动感
+        typed_text = ""
+        for chunk in full_response.split(" "):
+            typed_text += chunk + " "
+            time.sleep(0.02)
+            message_placeholder.markdown(typed_text + "▌")
+        
+        message_placeholder.markdown(full_response)
+        
+    st.session_state.messages.append({"role": "assistant", "content": full_response})
