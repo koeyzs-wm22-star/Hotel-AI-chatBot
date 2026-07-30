@@ -103,6 +103,23 @@
       "responses": [
         "API_WEATHER" 
       ]
+    },
+    {
+      "tag": "ask_services",
+      "patterns": [
+      "what services do you have",
+      "what amenities are available",
+      "what can I do at this hotel",
+      "hotel facilities",
+      "list your services",
+      "what do you offer",
+      "有什么服务",
+      "酒店有什么设施",
+      "你们提供什么服务"
+    ],
+    "responses": [
+    "✨ **Welcome to Exceptional Hospitality at The Grand Apex**\n\nIt is our privilege to provide a wide range of world-class amenities and personalized services during your stay:\n\n🍷 **Gastronomy & Dining**\n• 24-Hour In-Room Gourmet Dining\n• Michelin-Starred Fine Dining & Sky Garden Bar\n\n🧖‍♀️ **Wellness & Leisure**\n• Apex Executive Spa & Thermal Suites (Floor 5)\n• Heated Rooftop Infinity Sky Pool & Cabanas\n• 24/7 Technogym Fitness Suite\n\n🛎️ **Personalized Guest Care**\n• Executive Butler & Express Pressing Service\n• Private Airport Limousine Transfer\n• Direct In-Room Concierge Extension\n\n💡 *May I assist you with reserving a spa appointment, booking a restaurant table, or arranging transport?*"
+      ]
     }
   ]
 }
