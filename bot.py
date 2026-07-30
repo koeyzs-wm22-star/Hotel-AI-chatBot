@@ -27,6 +27,7 @@ if "latest_spa_booking" not in st.session_state:
     st.session_state.latest_spa_booking = None
 
 # Custom CSS for Luxury Visual Chat Elements
+# Custom CSS with Light/White Chatbot Bubble Overlay
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
@@ -49,16 +50,56 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* 🎟️ VISUAL SPA TICKET / CONFIRMATION CARD */
+    /* ==========================================
+       💬 CHATBOT MESSAGES - WHITE COLOR OVERRIDE
+       ========================================== */
+    
+    /* Chat Container Box Background */
+    [data-testid="stChatInput"] {
+        background-color: #FFFFFF !important;
+        border-radius: 12px !important;
+    }
+
+    /* Chat Message Bubbles - Clean White Background */
+    [data-testid="stChatMessage"] {
+        background-color: #FFFFFF !important;
+        color: #1A1A1A !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 16px !important;
+        padding: 16px 20px !important;
+        margin-bottom: 12px !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Ensure text inside chat messages is crisp dark gray/black */
+    [data-testid="stChatMessage"] p, 
+    [data-testid="stChatMessage"] div,
+    [data-testid="stChatMessage"] span,
+    [data-testid="stChatMessage"] li {
+        color: #1A1A1A !important;
+    }
+
+    /* Bold accent headings inside white chat bubbles */
+    [data-testid="stChatMessage"] strong,
+    [data-testid="stChatMessage"] h1,
+    [data-testid="stChatMessage"] h2,
+    [data-testid="stChatMessage"] h3 {
+        color: #8C6B2D !important; /* Deep Luxury Gold for text headers */
+    }
+
+    /* 🎟️ VISUAL SPA TICKET / CONFIRMATION CARD (Inside White Bubble) */
     .spa-pass-card {
-        background: linear-gradient(135deg, rgba(28, 25, 23, 0.95) 0%, rgba(15, 14, 13, 0.98) 100%);
-        border: 1px solid #B8965C;
-        border-radius: 16px;
+        background: linear-gradient(135deg, #1C1A17 0%, #0F0E0D 100%) !important;
+        border: 1px solid #B8965C !important;
+        border-radius: 14px;
         padding: 20px;
         margin: 12px 0;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.25);
         position: relative;
         overflow: hidden;
+    }
+    .spa-pass-card * {
+        color: #FFFFFF !important; /* Keep internal voucher text crisp light */
     }
     .spa-pass-card::before {
         content: "";
@@ -78,7 +119,7 @@ st.markdown("""
         font-family: 'Cormorant Garamond', serif;
         font-size: 20px;
         font-weight: 700;
-        color: #B8965C;
+        color: #B8965C !important;
         letter-spacing: 1px;
     }
     .pass-grid {
@@ -89,23 +130,26 @@ st.markdown("""
     }
     .pass-label {
         font-size: 10px;
-        color: #A09D9A;
+        color: #A09D9A !important;
         letter-spacing: 1.5px;
         text-transform: uppercase;
     }
     .pass-val {
         font-size: 14px;
         font-weight: 600;
-        color: #FFFFFF;
+        color: #FFFFFF !important;
     }
 
-    /* 📶 VISUAL WIFI ACCESS CARD */
+    /* 📶 VISUAL WIFI ACCESS CARD (Light Theme Adapter) */
     .wifi-card {
-        background: rgba(184, 150, 92, 0.08);
-        border: 1px solid rgba(184, 150, 92, 0.3);
+        background: #F8F5F0 !important;
+        border: 1px solid #CDBA96 !important;
         border-radius: 12px;
         padding: 16px;
         margin: 10px 0;
+    }
+    .wifi-card * {
+        color: #1A1A1A !important;
     }
 
     /* Executive Concierge Header */
