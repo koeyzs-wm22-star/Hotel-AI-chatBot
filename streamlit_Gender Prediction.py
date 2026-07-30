@@ -478,51 +478,37 @@ if "messages" not in st.session_state:
     ]
 
 def get_bot_response(user_input):
+    # 1. 文本清洗
     cleaned_input = clean_text(user_input)
-    if not cleaned_input:
-        return "It would be my delight to assist you. Please feel free to ask about our suites, spa, fine dining, or guest services."
-        
-    probs = model.predict_proba([cleaned_input])[0]
-    max_idx = np.argmax(probs)
-    confidence = probs[max_idx]
-    predicted_tag = model.classes_[max_idx]
     
-    if confidence < 0.18:
-        return (
-            "I apologize, but I want to ensure you receive the most precise assistance. "
-            "Could you please clarify if your query pertains to **Wi-Fi**, **Breakfast & Dining**, **Spa Reservations**, or **Check-in/Out**?\n\n"
-            "Alternatively, you may press **'0'** on your room telephone to speak directly with our Duty Manager."
-        )
-    
-    if predicted_tag == "ask_weather":
-        return get_realtime_weather()
-
-    if predicted_tag == "internal_call":
-        return render_internal_call_card()
-
-    return LUXURY_RESPONSES.get(predicted_tag, "Thank you for bringing this to my attention. Our Concierge Desk is entirely at your service.")
-
-# 渲染聊天记录
-for msg in st.session_state.messages:
-    st.chat_message(msg["role"]).write(msg["content"], unsafe_allow_html=True)
-
-if prompt := st.chat_input("Ask about Wi-Fi, Breakfast, Spa, Internal Call, or Weather..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user").write(prompt)
-    
-    with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        full_response = get_bot_response(prompt)
+    # 2. 空值安全防护
+    if not cleaned_input or not cleaned_input.strip():
+        return "Greetings! How may I assist your stay at The Grand Apex today?"
         
-        # 判断是否包含 HTML (如 internal_call 卡片)，如果是 HTML 就直接渲染，不走打字机效果
-        if "<div class=" in full_response:
-            message_placeholder.markdown(full_response, unsafe_allow_html=True)
-        else:
-            typed_text = ""
-            for chunk in full_response.split(" "):
-                typed_text += chunk + " "
-                time.sleep(0.02)
-                message_placeholder.markdown(typed_text + "▌")
-            message_placeholder.markdown(full_response)
+    try:
+        # 3. 模型预测
+        probs = model.predict_proba([cleaned_input])[0]
+        max_idx = np.argmax(probs)
+        confidence = probs[max_idx]
+        predicted_tag = model.classes_[max_idx]
         
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+        # 4. 低置信度兜底
+        if confidence < 0.18:
+            return (
+                "I apologize, but I want to ensure you receive the most precise assistance. "
+                "Could you please specify if you are asking about **Wi-Fi**, **Breakfast**, **Services**, or **Check-in**?\n\n"
+                "You may also dial **'0'** on your room phone to connect with the Front Desk."
+            )
+        
+        # 5. 特定意图触发
+        if predicted_tag == "ask_weather":
+            return get_realtime_weather()
+
+        if predicted_tag == "internal_call":
+            return render_internal_call_card()
+
+        return LUXURY_RESPONSES.get(predicted_tag, "Thank you. Our Concierge Desk is entirely at your service.")
+        
+    except Exception as e:
+        # 捕获任何意外的模型预测错误，防止页面崩溃
+        return "I am at your service. Please feel free to ask about our room amenities, dining, or guest services."
