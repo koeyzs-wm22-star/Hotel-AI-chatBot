@@ -4,6 +4,7 @@ import re
 import requests
 import numpy as np
 import streamlit as st
+import streamlit.components.v1 as components
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline, FeatureUnion
@@ -18,7 +19,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 注入高奢米白/暗淡香槟（Warm Elegance）UI CSS 样式
+# 注入高奢米白/香槟金 UI CSS 样式
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
@@ -30,7 +31,7 @@ st.markdown("""
         font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
-    /* 顶部黑金/白金 Header 区域 */
+    /* 顶部 Header 区域 */
     .hotel-header {
         text-align: center;
         padding: 24px 20px 16px 20px;
@@ -120,49 +121,151 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. 5星级广告轮播展示 (Hero Slideshow Banner)
+# 2. 长方形自动轮播广告（HTML5/JS Component）
 # ==========================================
-# 酒店高端照片 URL 库（高清 Unsplash 图片）
-slides = [
-    {
-        "url": "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80",
-        "title": "👑 Grand Apex Royal Suites",
-        "desc": "Experience unmatched luxury with 360° panoramic city vistas."
-    },
-    {
-        "url": "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80",
-        "title": "🏊 Infinity Sky Pool & Wellness",
-        "desc": "Relax at our heated outdoor sky pool overlooking the skyline."
-    },
-    {
-        "url": "https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=1200&q=80",
-        "title": "🍽️ Michelin-Starred Gastronomy",
-        "desc": "Indulge in exquisite fine dining prepared by world-renowned chefs."
+auto_slider_html = """
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: transparent; }
+    
+    /* 长方形轮播卡片容器 (21:9 比例) */
+    .slider-container {
+        position: relative;
+        width: 100%;
+        height: 220px; /* 控制极佳的长方形高度 */
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        border: 1px solid rgba(184, 150, 92, 0.3);
     }
-]
 
-# 初始化轮播索引
-if "slide_idx" not in st.session_state:
-    st.session_state.slide_idx = 0
+    .slide {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        transition: opacity 1s ease-in-out;
+        background-size: cover;
+        background-position: center;
+    }
 
-# 渲染 Slide 图文卡片
-current_slide = slides[st.session_state.slide_idx]
-st.image(current_slide["url"], use_container_width=True)
+    .slide.active {
+        opacity: 1;
+    }
 
-col_prev, col_info, col_next = st.columns([1, 4, 1])
+    /* 图片上的半透明暗色遮罩与文本 */
+    .slide-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 20px;
+        background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0) 100%);
+        color: #ffffff;
+    }
 
-with col_prev:
-    if st.button("❮", key="prev_slide"):
-        st.session_state.slide_idx = (st.session_state.slide_idx - 1) % len(slides)
-        st.rerun()
+    .slide-title {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        margin-bottom: 4px;
+        color: #FDFBF7;
+    }
 
-with col_info:
-    st.markdown(f"<div style='text-align: center; font-size: 13px;'><b>{current_slide['title']}</b> — <span style='color: #666;'>{current_slide['desc']}</span></div>", unsafe_allow_html=True)
+    .slide-desc {
+        font-size: 12px;
+        color: #D1C7BD;
+        font-weight: 300;
+    }
 
-with col_next:
-    if st.button("❯", key="next_slide"):
-        st.session_state.slide_idx = (st.session_state.slide_idx + 1) % len(slides)
-        st.rerun()
+    /* 底部圆点指示器 */
+    .dots-container {
+        position: absolute;
+        bottom: 12px;
+        right: 20px;
+        display: flex;
+        gap: 6px;
+    }
+
+    .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.4);
+        transition: all 0.3s ease;
+    }
+
+    .dot.active {
+        background: #B8965C;
+        width: 20px;
+        border-radius: 10px;
+    }
+</style>
+</head>
+<body>
+
+<div class="slider-container">
+    <!-- Slide 1 -->
+    <div class="slide active" style="background-image: url('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80');">
+        <div class="slide-overlay">
+            <div class="slide-title">👑 Royal Apex Penthouse Suite</div>
+            <div class="slide-desc">Panoramic skyline views with private butler service.</div>
+        </div>
+    </div>
+    <!-- Slide 2 -->
+    <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80');">
+        <div class="slide-overlay">
+            <div class="slide-title">🏊 Infinity Sky Pool & Spa</div>
+            <div class="slide-desc">Heated rooftop pool overlooking the heart of the city.</div>
+        </div>
+    </div>
+    <!-- Slide 3 -->
+    <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=1200&q=80');">
+        <div class="slide-overlay">
+            <div class="slide-title">🍽️ Michelin Three-Star Dining</div>
+            <div class="slide-desc">Exquisite culinary creations curated by Master Chefs.</div>
+        </div>
+    </div>
+
+    <div class="dots-container">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+    </div>
+</div>
+
+<script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const dots = document.querySelectorAll('.dot');
+    const totalSlides = slides.length;
+
+    function showSlide(index) {
+        slides.forEach(s => s.classList.remove('active'));
+        dots.forEach(d => d.classList.remove('active'));
+        
+        slides[index].classList.add('active');
+        dots[index].classList.add('active');
+    }
+
+    function nextSlide() {
+        currentSlide = (currentSlide + 1) % totalSlides;
+        showSlide(currentSlide);
+    }
+
+    // 每 3.5 秒自动平滑切换 Slide
+    setInterval(nextSlide, 3500);
+</script>
+
+</body>
+</html>
+"""
+
+# 渲染自定义 HTML5/JS 组件（设置高度为 230px）
+components.html(auto_slider_html, height=230)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
