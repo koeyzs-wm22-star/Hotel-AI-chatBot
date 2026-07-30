@@ -33,7 +33,7 @@ def load_and_train_model():
     ])
     
     # 构建 SVM 模型
-   model = make_pipeline(
+model = make_pipeline(
     union,
     LogisticRegression() # 默认支持 predict_proba
 )
