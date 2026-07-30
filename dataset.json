@@ -34,17 +34,29 @@
       ]
     },
     {
-      "tag": "ask_wifi",
-      "patterns": [
-        "酒店 Wi-Fi 密码是多少？",
-        "房间无线网怎么连？",
-        "What is the Wi-Fi password?",
-        "Wi-Fi name and password please"
-      ],
-      "responses": [
-        "酒店免费 Wi-Fi 名称为 Hotel_Guest，连接后输入房间号及姓氏即可登录。"
-      ]
-    },
+  "tag": "ask_wifi",
+  "patterns": [
+    "酒店 Wi-Fi 密码是多少？",
+    "房间无线网怎么连？",
+    "What is the Wi-Fi password?",
+    "Wi-Fi name and password please",
+    "how to login wifi",
+    "how to log in to wifi",
+    "how to connect to wifi",
+    "how to access internet",
+    "wifi login steps",
+    "cannot connect to wifi",
+    "is internet free",
+    "how do I join the network",
+    "无线网密码",
+    "怎么上上网",
+    "WiFi怎么登入",
+    "如何连接网络"
+  ],
+  "responses": [
+    "酒店提供免费 Wi-Fi！网络名称为 Hotel_Guest，连接后在弹出的页面输入您的房间号及入住人姓氏即可登录。"
+  ]
+},
     {
       "tag": "ask_parking",
       "patterns": [
