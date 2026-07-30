@@ -34,45 +34,45 @@
       ]
     },
     {
-  "tag": "ask_wifi",
-  "patterns": [
-    "酒店 Wi-Fi 密码是多少？",
-    "房间无线网怎么连？",
-    "What is the Wi-Fi password?",
-    "Wi-Fi name and password please",
-    "how to login wifi",
-    "how to log in to wifi",
-    "how to connect to wifi",
-    "how to access internet",
-    "wifi login steps",
-    "cannot connect to wifi",
-    "is internet free",
-    "how do I join the network",
-    "无线网密码",
-    "怎么上上网",
-    "WiFi怎么登入",
-    "如何连接网络"
-  ],
-  "responses": [
-    "酒店提供免费 Wi-Fi！网络名称为 Hotel_Guest，连接后在弹出的页面输入您的房间号及入住人姓氏即可登录。"
-  ]
-},
-{
-  "tag": "ask_wifi_steps",
-  "patterns": [
-    "can you guide me step by step",
-    "step by step guide",
-    "how to connect step by step",
-    "tell me more details",
-    "how do I do that",
-    "具体的步骤是什么",
-    "一步步教我",
-    "怎么一步步操作"
-  ],
-  "responses": [
-    "没问题！请按照以下步骤操作：\n1. 打开手机/电脑的 Wi-Fi 设置并开启无线网络。\n2. 在搜索列表中选择【Hotel_Guest】并点击连接。\n3. 等待手机自动弹出登录页面（如未弹出，请打开浏览器访问 1.1.1.1）。\n4. 在页面中输入您的【房间号】与【入住人姓氏（拼音/英文）】。\n5. 点击“完成连接”即可正常上网！"
-  ]
-},
+      "tag": "ask_wifi",
+      "patterns": [
+        "酒店 Wi-Fi 密码是多少？",
+        "房间无线网怎么连？",
+        "What is the Wi-Fi password?",
+        "Wi-Fi name and password please",
+        "how to login wifi",
+        "how to log in to wifi",
+        "how to connect to wifi",
+        "how to access internet",
+        "wifi login steps",
+        "cannot connect to wifi",
+        "is internet free",
+        "how do I join the network",
+        "无线网密码",
+        "怎么上上网",
+        "WiFi怎么登入",
+        "如何连接网络"
+      ],
+      "responses": [
+        "酒店提供免费 Wi-Fi！网络名称为 Hotel_Guest，连接后在弹出的页面输入您的房间号及入住人姓氏即可登录。"
+      ]
+    },
+    {
+      "tag": "ask_wifi_steps",
+      "patterns": [
+        "can you guide me step by step",
+        "step by step guide",
+        "how to connect step by step",
+        "tell me more details",
+        "how do I do that",
+        "具体的步骤是什么",
+        "一步步教我",
+        "怎么一步步操作"
+      ],
+      "responses": [
+        "没问题！请按照以下步骤操作：\n1. 打开手机/电脑的 Wi-Fi 设置并开启无线网络。\n2. 在搜索列表中选择【Hotel_Guest】并点击连接。\n3. 等待手机自动弹出登录页面（如未弹出，请打开浏览器访问 1.1.1.1）。\n4. 在页面中输入您的【房间号】与【入住人姓氏（拼音/英文）】。\n5. 点击“完成连接”即可正常上网！"
+      ]
+    },
     {
       "tag": "ask_parking",
       "patterns": [
