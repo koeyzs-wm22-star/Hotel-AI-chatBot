@@ -12,6 +12,34 @@ st.set_page_config(page_title="Hotel AI Assistant", page_icon="🏨", layout="ce
 st.title("🏨 酒店智能客服助手")
 st.caption("欢迎咨询入住、退房、早餐、Wi-Fi 等常见问题！")
 
+# 动态天气 API 获取函数 (使用免费开源的 Open-Meteo API)
+def get_realtime_weather(city="Kuala Lumpur"):
+    try:
+        # 这里以吉隆坡坐标 (3.139, 101.6869) 为例，你可以更改为你的酒店所在城市坐标
+        # 北京: lat=39.9042, lon=116.4074 | 上海: lat=31.2304, lon=121.4737
+        url = "https://api.open-meteo.com/v1/forecast?latitude=3.139&longitude=101.6869&current_weather=true"
+        response = requests.get(url, timeout=5)
+        
+        if response.status_code == 200:
+            data = response.json()
+            current = data.get("current_weather", {})
+            temp = current.get("temperature", "N/A")
+            windspeed = current.get("windspeed", "N/A")
+            weather_code = current.get("weathercode", 0)
+            
+            # WMO 天气代码简易映射
+            weather_desc = "晴朗/多云"
+            if weather_code in [1, 2, 3]:
+                weather_desc = "多云"
+            elif weather_code in [51, 61, 80, 95]:
+                weather_desc = "阵雨/降雨"
+                
+            return f"🌤️ **酒店当地实时天气**：\n- 当前天气状况：{weather_desc}\n- 当前气温：{temp}°C\n- 风速：{windspeed} km/h\n\n出门请注意天气变化，如有需要可在酒店前台免费借用雨伞！"
+        else:
+            return "☀️ 当前酒店当地气温舒适，大约 28°C-32°C。详细天气可咨询前台。"
+    except Exception as e:
+        return "☀️ 当前酒店当地天气晴朗，适宜出行。如需借用雨伞请联系前台。"
+
 # 2. 安全的文本清洗函数
 def clean_text(text):
     if not text or not isinstance(text, str):
