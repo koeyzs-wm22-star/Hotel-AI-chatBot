@@ -26,12 +26,12 @@ if "awaiting_spa_booking" not in st.session_state:
 if "latest_spa_booking" not in st.session_state:
     st.session_state.latest_spa_booking = None
 
-# Custom CSS for Luxury TV / Executive Hub Theme
+# Custom CSS for Luxury Visual Chat Elements
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
-    /* Global Dark Luxury Aesthetic */
+    /* Global Dark Luxury Theme */
     .stApp {
         background: radial-gradient(circle at top center, #1C1A17 0%, #0B0A09 100%);
         color: #FDFBF7;
@@ -49,13 +49,71 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
+    /* 🎟️ VISUAL SPA TICKET / CONFIRMATION CARD */
+    .spa-pass-card {
+        background: linear-gradient(135deg, rgba(28, 25, 23, 0.95) 0%, rgba(15, 14, 13, 0.98) 100%);
+        border: 1px solid #B8965C;
+        border-radius: 16px;
+        padding: 20px;
+        margin: 12px 0;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        position: relative;
+        overflow: hidden;
+    }
+    .spa-pass-card::before {
+        content: "";
+        position: absolute;
+        top: 0; right: 0; width: 6px; height: 100%;
+        background: #B8965C;
+    }
+    .pass-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px dashed rgba(184, 150, 92, 0.4);
+        padding-bottom: 10px;
+        margin-bottom: 12px;
+    }
+    .pass-title {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 20px;
+        font-weight: 700;
+        color: #B8965C;
+        letter-spacing: 1px;
+    }
+    .pass-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        font-size: 13px;
+    }
+    .pass-label {
+        font-size: 10px;
+        color: #A09D9A;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+    }
+    .pass-val {
+        font-size: 14px;
+        font-weight: 600;
+        color: #FFFFFF;
+    }
+
+    /* 📶 VISUAL WIFI ACCESS CARD */
+    .wifi-card {
+        background: rgba(184, 150, 92, 0.08);
+        border: 1px solid rgba(184, 150, 92, 0.3);
+        border-radius: 12px;
+        padding: 16px;
+        margin: 10px 0;
+    }
+
     /* Executive Concierge Header */
     .header-title {
         font-family: 'Cormorant Garamond', serif;
         font-size: 32px;
         font-weight: 700;
         color: #FFFFFF;
-        letter-spacing: 1px;
     }
     .header-sub {
         font-size: 13px;
@@ -85,7 +143,6 @@ st.markdown("""
         box-shadow: 0 0 8px #4CAF50;
     }
 
-    /* Info Pill Tags */
     .info-tag {
         background: rgba(184, 150, 92, 0.12);
         border: 1px solid rgba(184, 150, 92, 0.3);
@@ -96,7 +153,6 @@ st.markdown("""
         font-weight: 500;
     }
 
-    /* Dashboard Typography */
     .guest-name {
         font-family: 'Cormorant Garamond', serif;
         font-size: 58px;
@@ -242,7 +298,6 @@ elif st.session_state.page == "chat":
         </div>
         """, unsafe_allow_html=True)
 
-        # Suite Info Panel
         st.markdown("""
         <div class="glass-card">
             <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #A09D9A; margin-bottom: 12px;">SUITE DETAILS</div>
@@ -261,12 +316,11 @@ elif st.session_state.page == "chat":
         </div>
         """, unsafe_allow_html=True)
 
-        # Active Requests Widget
         booking_status = st.session_state.latest_spa_booking or "None"
         st.markdown(f"""
         <div class="glass-card">
             <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #A09D9A; margin-bottom: 12px;">ACTIVE SUITE REQUESTS</div>
-            <div style="font-size: 13px; color: #FFF; margin-bottom: 6px;"><b>Spa Booking:</b></div>
+            <div style="font-size: 13px; color: #FFF; margin-bottom: 6px;"><b>Spa Reservation:</b></div>
             <div class="info-tag">{booking_status}</div>
         </div>
         """, unsafe_allow_html=True)
@@ -274,7 +328,7 @@ elif st.session_state.page == "chat":
     # --- MAIN CHAT AREA ---
     with main_chat_col:
         # Quick Action Prompt Chips
-        st.markdown("##### ⚡ Quick Service Request")
+        st.markdown("##### ⚡ Direct Concierge Requests")
         q1, q2, q3, q4 = st.columns(4)
         
         prompt_input = None
@@ -290,22 +344,21 @@ elif st.session_state.page == "chat":
         st.markdown("<br>", unsafe_allow_html=True)
 
         # Message Stream Container
-        chat_box = st.container(height=420)
+        chat_box = st.container(height=450)
         with chat_box:
             for msg in st.session_state.messages:
                 with st.chat_message(msg["role"]):
-                    st.markdown(msg["content"])
+                    st.markdown(msg["content"], unsafe_allow_html=True)
 
-        # Capture Chat Input (or Trigger from Quick Action Chips)
+        # Capture Input
         user_text = st.chat_input("Message your Virtual Concierge...")
-        
         if prompt_input:
             user_text = prompt_input
 
         if user_text:
             st.session_state.messages.append({"role": "user", "content": user_text})
             
-            # Response Handler
+            # Response Logic with VISUAL COMPONENTS
             if st.session_state.awaiting_spa_booking:
                 check = validate_spa_booking(user_text)
                 if not check["valid"]:
@@ -313,17 +366,91 @@ elif st.session_state.page == "chat":
                 else:
                     st.session_state.awaiting_spa_booking = False
                     st.session_state.latest_spa_booking = user_text.strip()
-                    reply = f"✨ **Spa Reservation Requested!**\n\nThank you, Mr. Vance. I have recorded your reservation request for **\"{user_text.strip()}\"**.\n\nYour active status has been synced to your **Executive Suite Dashboard**."
+                    
+                    # 🎟️ VISUAL TICKET CARD RESPONSE
+                    reply = f"""
+✨ **Spa Reservation Confirmed**
+
+<div class="spa-pass-card">
+    <div class="pass-header">
+        <div class="pass-title">🧖 EXECUTIVE SPA VIP PASS</div>
+        <div style="background: rgba(230, 81, 0, 0.2); border: 1px solid #FF9800; color: #FFB74D; font-size: 11px; padding: 2px 10px; border-radius: 12px; font-weight: 600;">
+            ⏳ PENDING VERIFICATION
+        </div>
+    </div>
+    <div class="pass-grid">
+        <div>
+            <div class="pass-label">GUEST NAME</div>
+            <div class="pass-val">Mr. Alexander Vance</div>
+        </div>
+        <div>
+            <div class="pass-label">SUITE</div>
+            <div class="pass-val">Penthouse 1808</div>
+        </div>
+        <div>
+            <div class="pass-label">BOOKING DETAILS</div>
+            <div class="pass-val">{user_text.strip()}</div>
+        </div>
+        <div>
+            <div class="pass-label">LOCATION</div>
+            <div class="pass-val">Apex Spa (5th Floor)</div>
+        </div>
+    </div>
+    <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 11px; color: #A09D9A;">
+        💡 <i>Your reservation status has been updated on your Suite Smart Hub.</i>
+    </div>
+</div>
+"""
             else:
-                if any(k in user_text.lower() for k in ["spa", "book", "facial", "massage", "reserve"]):
+                text_low = user_text.lower()
+                if any(k in text_low for k in ["spa", "book", "facial", "massage", "reserve"]):
                     st.session_state.awaiting_spa_booking = True
-                    reply = "📅 **Apex Spa Reservation Desk**\n\nI would be delighted to arrange your spa treatment, Mr. Vance. Please provide:\n\n1. **Preferred Date & Time** (e.g., *1/8/2026 11:30am*)\n2. **Number of Guests** (e.g., *1 pax*)"
-                elif "wifi" in user_text.lower():
-                    reply = "📶 **Suite 1808 Premium WiFi**\n\n• **Network:** `GrandApex_VIP_Suite`\n• **Password:** `ApexVIP1808`\n\nEnjoy complimentary high-speed access throughout the property."
-                elif "breakfast" in user_text.lower() or "dining" in user_text.lower():
-                    reply = "🍽️ **In-Room Executive Dining**\n\nBreakfast is served daily from **06:30 AM to 11:00 AM**. Would you like me to place an order for **Chef's Signature Breakfast** or send the full menu to your suite screen?"
+                    reply = """
+📅 **Apex Executive Spa Reservation**
+
+I would be delighted to arrange your spa treatment, Mr. Vance! Please reply with:
+
+1. **Preferred Date & Time** (e.g., `1/8/2026 11:30am`)
+2. **Number of Guests** (e.g., `1 pax`)
+"""
+                elif "wifi" in text_low:
+                    # 📶 VISUAL WIFI CARD
+                    reply = """
+📶 **Executive WiFi Network Credentials**
+
+<div class="wifi-card">
+    <div style="font-size: 11px; color: #A09D9A; text-transform: uppercase; letter-spacing: 1.5px;">SUITE 1808 DEDICATED HIGH-SPEED NETWORK</div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+        <div>
+            <div style="font-size: 12px; color: #A09D9A;">NETWORK NAME</div>
+            <div style="font-size: 16px; font-weight: 700; color: #FFF;">GrandApex_VIP_1808</div>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: #A09D9A;">PASSWORD</div>
+            <div style="font-size: 16px; font-weight: 700; color: #B8965C;">ApexVIP1808</div>
+        </div>
+    </div>
+</div>
+"""
+                elif "breakfast" in text_low or "dining" in text_low:
+                    # 🍽️ VISUAL DINING CARDS
+                    reply = """
+🍽️ **In-Room Executive Dining Options**
+
+Here are today's featured breakfast sets served directly to **Suite 1808**:
+
+* **👑 Chef's Signature Truffle Omelette** — *$38*  
+  *Organic eggs, wild mushroom ragout, shaved black truffle, brioche toast.*
+* **🥐 Parisian Morning Bakery Basket** — *$28*  
+  *Freshly baked croissants, pain au chocolat, artisanal jams, fresh berries.*
+* **🥑 Avocado & Poached Egg Tartine** — *$32*  
+  *Sourdough, heirloom tomatoes, poached organic eggs, microgreens.*
+
+---
+💡 *Simply reply with your preferred items (e.g., "Order Truffle Omelette for 1 pax at 8:30am") to place your order.*
+"""
                 else:
-                    reply = f"Thank you, Mr. Vance. I have conveyed your message regarding *\"{user_text}\"* to your Duty Butler, Jean-Luc Moreau."
+                    reply = f"Thank you, Mr. Vance. I have conveyed your request regarding *\"{user_text}\"* directly to your Duty Butler, **Jean-Luc Moreau**."
 
             st.session_state.messages.append({"role": "assistant", "content": reply})
             st.rerun()
