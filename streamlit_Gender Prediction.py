@@ -385,6 +385,70 @@ I can connect you directly with our specialized hotel departments. Please choose
 </div>
 """
 
+def validate_spa_booking(text):
+    text_lower = text.lower()
+    
+    # 1. 检测人数 (如 2pax, 1 person, 3 people, 2位, 2人)
+    has_pax = bool(re.search(r'\b\d+\s*(pax|people|person|guests?|位|人)\b', text_lower))
+    
+    # 2. 检测日期/时间 (如 2:30pm, 20:30, 31 july, today, tomorrow, 3pm, 15:00)
+    has_time_or_date = bool(re.search(
+        r'(\b\d{1,2}(:\d{2})?\s*(am|pm)\b|\b\d{1,2}:\d{2}\b|\btoday\b|\btomorrow\b|\b\d{1,2}(st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b|\b(july|august|september|october|november|december|january|february|march|april|june)\b|\b\d+\s*(点|点半|号)\b)', 
+        text_lower
+    ))
+    
+    # -------------------------------------------------------------
+    # 校验 A: 时间超限检查 (超过 20:30 PM 不接受预约)
+    # -------------------------------------------------------------
+    # 尝试提取时间数字 (支持 15:00, 20:30, 9pm, 9:30pm 等)
+    time_match = re.search(r'\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b', text_lower)
+    if time_match:
+        hour = int(time_match.group(1))
+        minute = int(time_match.group(2)) if time_match.group(2) else 0
+        ampm = time_match.group(3)
+        
+        # 转为 24 小时制
+        if ampm == 'pm' and hour < 12:
+            hour += 12
+        elif ampm == 'am' and hour == 12:
+            hour = 0
+            
+        # 排除普通的年份/日期数字干扰（如 2026 年）
+        if 0 <= hour <= 23 and 0 <= minute <= 59 and not (hour == 20 and minute == 26):
+            # 晚于 20:30
+            if hour > 20 or (hour == 20 and minute > 30):
+                return {
+                    "valid": False,
+                    "msg": "⏰ **Appointment Hours Exceeded**\n\nOur last available spa treatment slot starts at **20:30 PM** (Spa closes at 22:00 PM).\n\nCould you please choose a time **between 09:00 AM and 20:30 PM**?"
+                }
+            # 早于 09:00
+            elif hour < 9:
+                return {
+                    "valid": False,
+                    "msg": "⏰ **Spa Operating Hours Alert**\n\nOur Spa opens at **09:00 AM** daily. Please select a time after 09:00 AM."
+                }
+
+    # -------------------------------------------------------------
+    # 校验 B: 必须同时提供【时间/日期】与【人数】
+    # -------------------------------------------------------------
+    if not has_pax and not has_time_or_date:
+        return {
+            "valid": False,
+            "msg": "⚠️ **Details Missing**\n\nTo process your spa reservation, we require **both** your preferred date/time (e.g., *Today at 3:00 PM*) and the number of guests (e.g., *2 pax*).\n\nPlease reply with both details!"
+        }
+    elif not has_pax:
+        return {
+            "valid": False,
+            "msg": "⚠️ **Number of Guests Needed**\n\nThank you for providing the time! Could you also specify **how many guests (pax)** will be joining the session?"
+        }
+    elif not has_time_or_date:
+        return {
+            "valid": False,
+            "msg": "⚠️ **Preferred Time Needed**\n\nGot it! Could you please let us know **what date and time** you would like to reserve? (Note: Last appointment is at 20:30 PM)"
+        }
+
+    return {"valid": True, "msg": "OK"}
+
 # ==========================================
 # 6. 模型训练与高级话术映射
 # ==========================================
@@ -508,9 +572,17 @@ def get_bot_response(user_input):
     if not cleaned_input or not cleaned_input.strip():
         return "Greetings! How may I assist your stay at The Grand Apex today?"
 
-    # 🌟【最严谨的上下文判定】：必须在后台标记为 True 的情况下，客人回复了具体信息，才算作“输入时间”
+    # 🌟【最严谨的上下文判定 + 校验】
     if st.session_state.awaiting_spa_booking:
-        st.session_state.awaiting_spa_booking = False  # 接收完细节，立即关闭重置状态！
+        # 进行合法性校验
+        check_result = validate_spa_booking(user_input)
+        
+        # ❌ 如果校验未通过，保持等待状态，引导用户重新补齐或修正！
+        if not check_result["valid"]:
+            return check_result["msg"]
+            
+        # ✅ 校验通过，完成预约，关闭等待状态
+        st.session_state.awaiting_spa_booking = False
         return (
             "✨ **Spa Reservation Request Received!**\n\n"
             f"Thank you for providing your details: **\"{user_input.strip()}\"**.\n\n"
@@ -519,6 +591,7 @@ def get_bot_response(user_input):
         )
 
     try:
+        # 模型预测及其他逻辑...
         probs = model.predict_proba([cleaned_input])[0]
         max_idx = np.argmax(probs)
         confidence = probs[max_idx]
@@ -531,8 +604,7 @@ def get_bot_response(user_input):
                 "You may also dial **'0'** on your room phone to connect with the Front Desk."
             )
 
-        # 🌟 当触发 SPA 预约需求时，打印回答，并把【下一步等待状态】开启
-        if predicted_tag == "ask_spa_booking":
+        if predicted_tag in ["ask_spa_booking"]:
             st.session_state.awaiting_spa_booking = True
             return LUXURY_RESPONSES.get("ask_spa_booking")
 
