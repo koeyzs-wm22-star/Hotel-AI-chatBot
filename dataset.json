@@ -89,14 +89,16 @@
       "tag": "ask_weather",
       "patterns": [
       "today weather",
-      "what is the weather like today",
-      "is it raining outside",
-      "how is the weather",
+      "tomorrow weather",
       "weather forecast",
+      "what is the weather like tomorrow",
+      "how is the weather next two days",
       "今天天气怎么样",
-      "今天会下雨吗",
-      "天气预报",
-      "外面热不热"
+      "明天天气怎么样",
+      "后天天气怎么样",
+      "未来几天天气预报",
+      "明天会下雨吗",
+      "后天热不热"
       ],
       "responses": [
         "API_WEATHER" 
