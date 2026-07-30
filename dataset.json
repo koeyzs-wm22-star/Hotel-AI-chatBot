@@ -1,8 +1,4 @@
-{
-  "tag": "greet",
-  "patterns": ["hi", "hello", "hey", "你好", "您好", "hi there"],
-  "responses": ["您好！请问有什么可以帮您？您可以询问入住、退房、早餐或 Wi-Fi 相关问题。"]
-}，
+
 {
   "intents": [
     {
@@ -23,6 +19,11 @@
         "我们的标准入住时间（Check-in）为下午 14:00 以后，退房时间（Check-out）为中午 12:00 以前。"
       ]
     },
+    {
+  "tag": "greet",
+  "patterns": ["hi", "hello", "hey", "你好", "您好", "hi there"],
+  "responses": ["您好！请问有什么可以帮您？您可以询问入住、退房、早餐或 Wi-Fi 相关问题。"]
+}，
     {
       "tag": "ask_breakfast_info",
       "patterns": [
