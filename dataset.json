@@ -3,7 +3,7 @@
     {
       "tag": "greet",
       "patterns": ["hi", "hello", "hey", "你好", "您好", "hi there"],
-      "responses": ["您好！我是酒店 AI 客服，请问有什么可以帮您？"]
+      "responses": ["您好！我是酒店 AI 客服助手，请问有什么可以帮您？"]
     },
     {
       "tag": "ask_check_in_out",
@@ -43,6 +43,18 @@
       ],
       "responses": [
         "酒店免费 Wi-Fi 名称为 Hotel_Guest，连接后输入房间号及姓氏即可登录。"
+      ]
+    },
+    {
+      "tag": "ask_parking",
+      "patterns": [
+        "酒店有停车场吗？",
+        "停车怎么收费？",
+        "Is parking free for guests?",
+        "住店客人停车免费吗？"
+      ],
+      "responses": [
+        "酒店设有地下停车场，住店客人凭房卡可享受免费停车服务。"
       ]
     }
   ]
