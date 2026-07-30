@@ -1,4 +1,9 @@
 {
+  "tag": "greet",
+  "patterns": ["hi", "hello", "hey", "你好", "您好", "hi there"],
+  "responses": ["您好！请问有什么可以帮您？您可以询问入住、退房、早餐或 Wi-Fi 相关问题。"]
+}，
+{
   "intents": [
     {
       "tag": "ask_check_in_out",
