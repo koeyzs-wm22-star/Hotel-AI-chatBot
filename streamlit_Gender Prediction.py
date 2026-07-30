@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import requests
 import numpy as np
 import streamlit as st
 from sklearn.feature_extraction.text import TfidfVectorizer
