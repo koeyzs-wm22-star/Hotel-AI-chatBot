@@ -1,53 +1,68 @@
+import json
+import numpy as np
 import streamlit as st
-import nltk
-from nltk import NaiveBayesClassifier
-from nltk.classify import apply_features
-from joblib import load
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.svm import SVC
+from sklearn.pipeline import make_pipeline
 
-# Download NLTK resources if not already downloaded
-nltk.download('names')
+# 1. 页面基本配置
+st.set_page_config(page_title="Hotel AI Assistant", page_icon="🏨", layout="centered")
+st.title("🏨 酒店智能客服助手")
+st.caption("欢迎咨询入住、退房、早餐、Wi-Fi 等常见问题！")
 
-# Function to extract features from a name
-def extract_gender_features(name):
-    name = name.lower()
-    features = {
-        "suffix": name[-1:],
-        "suffix2": name[-2:] if len(name) > 1 else name[0],
-        "suffix3": name[-3:] if len(name) > 2 else name[0],
-        "suffix4": name[-4:] if len(name) > 3 else name[0],
-        "suffix5": name[-5:] if len(name) > 4 else name[0],
-        "suffix6": name[-6:] if len(name) > 5 else name[0],
-        "prefix": name[:1],
-        "prefix2": name[:2] if len(name) > 1 else name[0],
-        "prefix3": name[:3] if len(name) > 2 else name[0],
-        "prefix4": name[:4] if len(name) > 3 else name[0],
-        "prefix5": name[:5] if len(name) > 4 else name[0]
-    }
-    return features
-
-# Load the trained Naive Bayes classifier
-bayes = load('gender_prediction.joblib')
-
-# Streamlit app
-def main():
-    st.title('Gender Prediction App')
-    st.write('Enter a name to predict its gender.')
-
-    # Input for name
-    input_name = st.text_input('Name:')
+# 2. 训练模型（使用 @st.cache_resource 避免每次刷新页面都重新训练）
+@st.cache_resource
+def load_and_train_model():
+    with open('dataset.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
     
-    if st.button('Predict'):
-        if input_name.strip() != '':
-            # Extract features for the input name
-            features = extract_gender_features(input_name)
+    X, y = [], []
+    responses_map = {}
+    
+    for intent in data['intents']:
+        tag = intent['tag']
+        responses_map[tag] = intent['responses'][0]
+        for pattern in intent['patterns']:
+            X.append(pattern)
+            y.append(tag)
             
-            # Predict using the trained classifier
-            predicted_gender = bayes.classify(features)
-            
-            # Display prediction
-            st.success(f'The predicted gender for "{input_name}" is: {predicted_gender}')
-        else:
-            st.warning('Please enter a name.')
+    # 构建 TF-IDF + SVM 模型
+    model = make_pipeline(TfidfVectorizer(ngram_range=(1, 2)), SVC(kernel='linear', probability=True))
+    model.fit(X, y)
+    return model, responses_map
 
-if __name__ == '__main__':
-    main()
+model, responses_map = load_and_train_model()
+
+# 3. 意图预测与置信度过滤
+def get_bot_response(user_input):
+    probs = model.predict_proba([user_input])[0]
+    max_idx = np.argmax(probs)
+    confidence = probs[max_idx]
+    
+    # 低置信度（低于 35%）触发 Fallback
+    if confidence < 0.35:
+        return "抱歉，我不太理解您的意思。您是想询问退房时间、早餐还是 Wi-Fi 密码呢？如果需要人工帮助，请回复“转人工”。"
+    
+    predicted_tag = model.classes_[max_idx]
+    return responses_map.get(predicted_tag, "抱歉，系统出错了。")
+
+# 4. Streamlit 聊天历史渲染与交互
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "assistant", "content": "您好！我是酒店客服 AI 助手，请问有什么可以帮您？"}
+    ]
+
+# 显示历史消息
+for msg in st.session_state.messages:
+    st.chat_message(msg["role"]).write(msg["content"])
+
+# 处理用户输入
+if prompt := st.chat_input("请输入您的问题... (例如: 几点退房？早餐在哪吃？)"):
+    # 渲染用户消息
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.chat_message("user").write(prompt)
+    
+    # 生成并渲染 Bot 答复
+    bot_reply = get_bot_response(prompt)
+    st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+    st.chat_message("assistant").write(bot_reply)
