@@ -11,23 +11,18 @@ st.title("🏨 酒店智能客服助手")
 st.caption("欢迎咨询入住、退房、早餐、Wi-Fi 等常见问题！")
 
 # 2. 训练模型（使用 @st.cache_resource 避免重复训练）
+# 文本预处理清洗函数
+def clean_text(text):
+    text = text.lower().strip()
+    # 替换掉标点符号，留出纯单词
+    text = re.sub(r'[^\w\s]', ' ', text)
+    return text
+
 @st.cache_resource
 def load_and_train_model():
-    dataset_file = 'dataset.json'
+    with open('dataset.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
     
-    # 自动容错：如果文件损坏或不存在，自动写入默认的 json
-    try:
-        with open(dataset_file, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-    except Exception as e:
-        st.error(f"⚠️ 读取 dataset.json 失败（可能是 JSON 语法错误），已自动加载默认测试数据！错误详情: {e}")
-        data = {
-            "intents": [
-                {"tag": "greet", "patterns": ["hi", "hello", "你好"], "responses": ["您好！请问有什么可以帮您？"]},
-                {"tag": "breakfast", "patterns": ["what time for breakfast", "早餐几点"], "responses": ["早餐时间为 06:30 - 10:00。"]}
-            ]
-        }
-
     X, y = [], []
     responses_map = {}
     
@@ -35,18 +30,35 @@ def load_and_train_model():
         tag = intent['tag']
         responses_map[tag] = intent['responses'][0]
         for pattern in intent['patterns']:
-            X.append(pattern.lower().strip())
+            X.append(clean_text(pattern))
             y.append(tag)
             
-    # 特征融合 (支持短单词如 hi, tmr 以及中英文)
+    # 特征融合：词 N-gram (1 到 3 词组合) + 字符 N-gram (2 到 4 字符)
+    # 支持 match "how to login wifi", "login wifi", "wifi login" 等模式
     union = FeatureUnion([
-        ('word_tf', TfidfVectorizer(ngram_range=(1, 2), token_pattern=r'(?u)\b\w+\b')),
+        ('word_tf', TfidfVectorizer(ngram_range=(1, 3), token_pattern=r'(?u)\b\w+\b')),
         ('char_tf', TfidfVectorizer(ngram_range=(2, 4), analyzer='char_wb'))
     ])
     
-    model = make_pipeline(union, LogisticRegression())
+    # 增加 C 参数使逻辑回归分类器容错率更高、泛化能力更强
+    model = make_pipeline(union, LogisticRegression(C=5.0))
     model.fit(X, y)
     return model, responses_map
+
+model, responses_map = load_and_train_model()
+
+def get_bot_response(user_input):
+    cleaned_input = clean_text(user_input)
+    probs = model.predict_proba([cleaned_input])[0]
+    max_idx = np.argmax(probs)
+    confidence = probs[max_idx]
+    
+    # 阈值微调为 0.18，提升对相似未见过英文短语的识别率
+    if confidence < 0.18:
+        return "抱歉，我不太理解您的意思。您是想询问退房时间、早餐还是 Wi-Fi 密码呢？如果需要人工帮助，请回复“转人工”。"
+    
+    predicted_tag = model.classes_[max_idx]
+    return responses_map.get(predicted_tag, "抱歉，系统出错了。")
 
 # 加载模型
 model, responses_map = load_and_train_model()
