@@ -1,6 +1,10 @@
-
 {
   "intents": [
+    {
+      "tag": "greet",
+      "patterns": ["hi", "hello", "hey", "你好", "您好", "hi there"],
+      "responses": ["您好！我是酒店 AI 客服，请问有什么可以帮您？"]
+    },
     {
       "tag": "ask_check_in_out",
       "patterns": [
@@ -8,38 +12,25 @@
         "退房时间是几点？",
         "What time is check-in and check-out?",
         "最晚什么时候要退房？",
-        "几点能拿房门卡？",
         "When can I check in?",
-        "入住和退房的时间规定是什么？",
-        "Check out time please",
-        "下午几点可以进房间？",
-        "12点前一定要退房吗？"
+        "Check out time please"
       ],
       "responses": [
-        "我们的标准入住时间（Check-in）为下午 14:00 以后，退房时间（Check-out）为中午 12:00 以前。"
+        "我们的标准入住时间为下午 14:00 以后，退房时间为中午 12:00 以前。"
       ]
     },
-    {
-  "tag": "greet",
-  "patterns": ["hi", "hello", "hey", "你好", "您好", "hi there"],
-  "responses": ["您好！请问有什么可以帮您？您可以询问入住、退房、早餐或 Wi-Fi 相关问题。"]
-}，
     {
       "tag": "ask_breakfast_info",
       "patterns": [
         "早餐几点开始？",
         "早饭在几楼吃？",
         "What time is breakfast served?",
-        "早餐包含在房费里吗？",
-        "Where is the breakfast buffet?",
-        "明早有吃的吗？几点关门？",
-        "Is breakfast included?",
-        "早餐时间和地点是什么？",
-        "Breakfast hours and location?",
-        "吃早餐要带房卡吗？"
+        "what time for tmr breakfast",
+        "what time for breakfast",
+        "早餐时间和地点是什么？"
       ],
       "responses": [
-        "早餐供应时间为每天 06:30 至 10:00，地点在一楼西餐厅。如您的房型不含早，可在前台或餐厅购买。"
+        "早餐供应时间为每天 06:30 至 10:00，地点在一楼西餐厅。"
       ]
     },
     {
@@ -48,142 +39,10 @@
         "酒店 Wi-Fi 密码是多少？",
         "房间无线网怎么连？",
         "What is the Wi-Fi password?",
-        "房间里有网络吗？",
-        "Wi-Fi name and password please",
-        "无线网连不上怎么办？",
-        "Wi-Fi code",
-        "房间有免费 WiFi 吗？",
-        "How to connect to the hotel wifi?",
-        "网络密码是什么？"
+        "Wi-Fi name and password please"
       ],
       "responses": [
-        "酒店全馆提供免费 Wi-Fi！网络名称为 Hotel_Guest，连接后输入您的房间号及入住人姓氏即可登录。"
-      ]
-    },
-    {
-      "tag": "ask_parking",
-      "patterns": [
-        "酒店有停车场吗？",
-        "停车怎么收费？",
-        "Is parking free for guests?",
-        "开过来有地方停车吗？",
-        "Parking space and fee?",
-        "住店客人停车免费吗？",
-        "地下停车场在哪？",
-        "Do you have a parking lot?",
-        "停车需要提前预约吗？",
-        "车位多不多？"
-      ],
-      "responses": [
-        "酒店设有地下停车场，住店客人凭房卡可享受免费停车服务。离店前请到前台办理免费录入。"
-      ]
-    },
-    {
-      "tag": "request_late_checkout",
-      "patterns": [
-        "可以申请延迟退房吗？",
-        "能晚一点退房吗？",
-        "Can I request a late check-out?",
-        "我想延退到下午两点可以吗？",
-        "Late check out cost?",
-        "延迟退房要另外收费吗？",
-        "最晚可以延迟到几点退房？",
-        "Can I keep the room until 2 PM?",
-        "下午退房需要加钱吗？",
-        "延迟退房流程"
-      ],
-      "responses": [
-        "延迟退房需视当天房态而定。通常延迟至 14:00 前需加收半天房费，请在前台或退房当天早上与我们确认。"
-      ]
-    },
-    {
-      "tag": "request_room_amenities",
-      "patterns": [
-        "可以多要两条毛巾吗？",
-        "房间里没有牙刷了",
-        "Can I get extra towels and pillows?",
-        "能不能送两瓶矿泉水上来？",
-        "Need extra toilet paper",
-        "房间拖鞋不够用",
-        "请送一个吹风机给我",
-        "Could you send up some water?",
-        "缺洗发水和沐浴露",
-        "房内洗漱用品补充"
-      ],
-      "responses": [
-        "没问题！请告诉我您的房间号，客房服务人员将会在 10 分钟内为您送到房间。"
-      ]
-    },
-    {
-      "tag": "ask_luggage_storage",
-      "patterns": [
-        "退房后可以寄存行李吗？",
-        "可以先寄存行李再出去玩吗？",
-        "Do you offer luggage storage?",
-        "行李寄存怎么收费？",
-        "Can I leave my bags here before check-in?",
-        "寄行李是免费的吗？",
-        "Luggage storage service",
-        "行李可以放前台放多久？",
-        "存包服务在哪里办理？",
-        "还没到入住时间，行李能先放下吗？"
-      ],
-      "responses": [
-        "可以的！前台提供免费的行李寄存服务，您在入住前或退房后均可随时寄存。"
-      ]
-    },
-    {
-      "tag": "ask_transport_airport",
-      "patterns": [
-        "酒店有机场接送服务吗？",
-        "怎么去机场/火车站？",
-        "Do you have airport shuttle service?",
-        "叫出租车到机场要多久？",
-        "How to get to the airport from hotel?",
-        "接机服务怎么预约？",
-        "Airport transfer cost",
-        "附近有地铁站吗？",
-        "去机场大概多少钱？",
-        "接送机费用"
-      ],
-      "responses": [
-        "酒店提供付费的专车接送机服务（需要提前24小时预约）。此外，距离酒店步行 5 分钟即有地铁站直达机场。"
-      ]
-    },
-    {
-      "tag": "request_room_cleaning",
-      "patterns": [
-        "今天房间还没打扫",
-        "请帮我打扫一下房间",
-        "When will my room be cleaned?",
-        "Please clean my room now",
-        "收拾房间服务",
-        "不用打扫房间，换下垃圾袋就行",
-        "Housekeeping service please",
-        "房间什么时候会有人来整理？",
-        "Make up room",
-        "今天不需要打扫房间"
-      ],
-      "responses": [
-        "好的，客房日常打扫时间为每日 09:00 至 16:00。如果您现在需要打扫，请告诉我房间号，我即刻通知客房部安排。"
-      ]
-    },
-    {
-      "tag": "human_escalation_complaint",
-      "patterns": [
-        "我要找人工客服",
-        "转接前台直拨电话",
-        "I want to speak to a real person / manager",
-        "你们机器人根本听不懂",
-        "我要投诉隔壁太吵了",
-        "Connect me to human staff",
-        "房间空调坏了叫维修人员来",
-        "Help desk phone number",
-        "转前台",
-        "太差劲了找你们经理"
-      ],
-      "responses": [
-        "非常抱歉没能很好地解决您的需求！已为您记录并转接值班经理/前台。您也可以直接按房间电话上的“0”键直达前台。"
+        "酒店免费 Wi-Fi 名称为 Hotel_Guest，连接后输入房间号及姓氏即可登录。"
       ]
     }
   ]
