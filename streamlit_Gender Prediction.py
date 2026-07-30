@@ -417,7 +417,26 @@ LUXURY_RESPONSES = {
     ),
     "ask_breakfast": "🥂 **Michelin-Star Breakfast Service**\n\nBreakfast is served daily at **The Grand Atrium** on Floor 1 from **06:30 AM to 10:30 AM**.\n\nAlternatively, we offer **24-Hour In-Room Fine Dining**. Would you like me to share today's Continental or Asian Gourmet Breakfast Menu?",
     "ask_checkin": "🗝️ **Check-in & Check-out Policies**\n\n• **Standard Check-in**: 15:00 PM\n• **Standard Check-out**: 12:00 PM (Noon)\n\n*If you require an extended Late Check-out or priority luggage storage, please inform me, and I will coordinate with the Front Desk immediately.*",
-    "ask_spa": "🧖‍♀️ **Apex Executive Wellness & Spa**\n\nLocated on Floor 5, our Spa offers signature aromatherapy, hot stone massages, and thermal sauna suites. Open daily from **09:00 AM to 22:00 PM**.",
+    
+    # 🌟 1. 在字典里新增 SPA 的价格和预约回复
+    "ask_spa": (
+        "🧖‍♀️ **Apex Executive Wellness & Spa**\n\n"
+        "Located on Floor 5, our Spa offers signature aromatherapy, hot stone therapy, and luxury facials.\n\n"
+        "🕒 **Operating Hours:** Daily **09:00 AM – 22:00 PM** (Last appointment at 20:30 PM)\n\n"
+        "💵 **Signature Menu & Pricing:**\n"
+        "• *Apex Aromatherapy Massage* (60 min) — **$180**\n"
+        "• *Deep Tissue Recovery Therapy* (60 min) — **$200**\n"
+        "• *Himalayan Hot Stone Rejuvenation* (90 min) — **$260**\n"
+        "• *Customized Hydrating Facial* (60 min) — **$190**\n\n"
+        "📞 **Reservation:** Dial **Ext '802'** from your room phone, or tell me your preferred time to hold a slot!"
+    ),
+    "ask_spa_booking": (
+        "📅 **Spa Reservation Request**\n\n"
+        "I would be delighted to arrange this for you! To secure your preferred time, please specify:\n"
+        "1. Your preferred time (e.g., Today at 15:00 PM)\n"
+        "2. Number of guests\n\n"
+        "Alternatively, you may dial **Ext '802'** to speak directly with our Spa Receptionist for immediate confirmation."
+    ),
     "ask_dining": "🍽️ **Gastronomic Experiences**\n\nThe Grand Apex features three award-winning venues:\n1. **L'Aura (Floor 48)** - Michelin French Fine Dining\n2. **Sakura Sky Lounge (Floor 49)** - Contemporary Omakase\n3. **The Atrium (Floor 1)** - All-Day International Buffet"
 }
 
@@ -455,6 +474,24 @@ def load_and_train_model():
     for p in service_patterns:
         X.append(clean_text(p))
         y.append("ask_services")
+
+    # 🌟 3. 在这里加入 SPA 价格、时间与预约的训练样本！
+    spa_patterns = [
+        "spa", "spa price", "spa pricing", "how much is spa", "spa menu", 
+        "spa hours", "when is spa open", "massage", "massage price", "spa price list",
+        "spa价格", "spa多少钱", "按摩多少钱", "spa营业时间"
+    ]
+    for p in spa_patterns:
+        X.append(clean_text(p))
+        y.append("ask_spa")
+
+    booking_patterns = [
+        "how to book spa", "I want to book spa", "book a massage", "make spa appointment", "reserve spa", "book spa",
+        "怎么预约spa", "帮我订spa", "我想做spa", "预约spa"
+    ]
+    for p in booking_patterns:
+        X.append(clean_text(p))
+        y.append("ask_spa_booking")
 
     if not X:
         X = ["hi", "wifi", "weather", "breakfast", "spa", "checkin", "call front desk", "services"]
