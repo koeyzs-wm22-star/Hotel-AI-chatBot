@@ -386,7 +386,7 @@ I can connect you directly with our specialized hotel departments. Please choose
 """
 
 # ==========================================
-# 6. 模型训练与高级话术映射（加入 Internal Call 识别）
+# 6. 模型训练与高级话术映射（包含完善词库与 ask_services）
 # ==========================================
 def clean_text(text):
     if not text or not isinstance(text, str):
@@ -399,8 +399,6 @@ def clean_text(text):
 LUXURY_RESPONSES = {
     "greet": "Greetings! It is my absolute pleasure to welcome you to The Grand Apex Resort & Spa. How may I be of service to you today?",
     "ask_wifi": "📶 **High-Speed Complimentary Wi-Fi**\n\nPlease select the network **`GrandApex_Guest`**. No password is required—simply enter your Room Number and Last Name on the login page.\n\n*If you require high-bandwidth access for video conferencing, our IT Butler is available 24/7 by dialing '0'.*",
-    
-    # 确认这一段在你的代码里！
     "ask_services": (
         "✨ **Welcome to Exceptional Hospitality at The Grand Apex**\n\n"
         "It is our privilege to provide a wide range of world-class amenities and personalized services during your stay:\n\n"
@@ -417,10 +415,12 @@ LUXURY_RESPONSES = {
         "• Direct In-Room Concierge Extension\n\n"
         "💡 *May I assist you with reserving a spa appointment, booking a restaurant table, or arranging transport?*"
     ),
-    
-    "ask_breakfast": "🥂 **Michelin-Star Breakfast Service**\n...",
-    # ... 其余项保持不变
+    "ask_breakfast": "🥂 **Michelin-Star Breakfast Service**\n\nBreakfast is served daily at **The Grand Atrium** on Floor 1 from **06:30 AM to 10:30 AM**.\n\nAlternatively, we offer **24-Hour In-Room Fine Dining**. Would you like me to share today's Continental or Asian Gourmet Breakfast Menu?",
+    "ask_checkin": "🗝️ **Check-in & Check-out Policies**\n\n• **Standard Check-in**: 15:00 PM\n• **Standard Check-out**: 12:00 PM (Noon)\n\n*If you require an extended Late Check-out or priority luggage storage, please inform me, and I will coordinate with the Front Desk immediately.*",
+    "ask_spa": "🧖‍♀️ **Apex Executive Wellness & Spa**\n\nLocated on Floor 5, our Spa offers signature aromatherapy, hot stone massages, and thermal sauna suites. Open daily from **09:00 AM to 22:00 PM**.",
+    "ask_dining": "🍽️ **Gastronomic Experiences**\n\nThe Grand Apex features three award-winning venues:\n1. **L'Aura (Floor 48)** - Michelin French Fine Dining\n2. **Sakura Sky Lounge (Floor 49)** - Contemporary Omakase\n3. **The Atrium (Floor 1)** - All-Day International Buffet"
 }
+
 @st.cache_resource
 def load_and_train_model():
     dataset_file = 'dataset.json'
@@ -445,7 +445,7 @@ def load_and_train_model():
         X.append(clean_text(p))
         y.append("internal_call")
 
-    # 2. 【关键修正】显式强补充 ask_services 的训练样本！
+    # 2. 显式补充 ask_services 的训练样本
     service_patterns = [
         "what services do you have", "what services", "hotel services", "services", 
         "what amenities are available", "amenities", "what can I do at this hotel", 
@@ -469,8 +469,11 @@ def load_and_train_model():
     model.fit(X, y)
     return model
 
+# 训练并加载模型
+model = load_and_train_model()
+
 # ==========================================
-# 7. 对话渲染与逻辑触发
+# 7. 对话逻辑与界面渲染 (Chatbot UI)
 # ==========================================
 if "messages" not in st.session_state:
     st.session_state.messages = [
@@ -478,21 +481,17 @@ if "messages" not in st.session_state:
     ]
 
 def get_bot_response(user_input):
-    # 1. 文本清洗
     cleaned_input = clean_text(user_input)
     
-    # 2. 空值安全防护
     if not cleaned_input or not cleaned_input.strip():
         return "Greetings! How may I assist your stay at The Grand Apex today?"
         
     try:
-        # 3. 模型预测
         probs = model.predict_proba([cleaned_input])[0]
         max_idx = np.argmax(probs)
         confidence = probs[max_idx]
         predicted_tag = model.classes_[max_idx]
         
-        # 4. 低置信度兜底
         if confidence < 0.18:
             return (
                 "I apologize, but I want to ensure you receive the most precise assistance. "
@@ -500,7 +499,6 @@ def get_bot_response(user_input):
                 "You may also dial **'0'** on your room phone to connect with the Front Desk."
             )
         
-        # 5. 特定意图触发
         if predicted_tag == "ask_weather":
             return get_realtime_weather()
 
@@ -510,5 +508,34 @@ def get_bot_response(user_input):
         return LUXURY_RESPONSES.get(predicted_tag, "Thank you. Our Concierge Desk is entirely at your service.")
         
     except Exception as e:
-        # 捕获任何意外的模型预测错误，防止页面崩溃
         return "I am at your service. Please feel free to ask about our room amenities, dining, or guest services."
+
+# 渲染过往聊天记录
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"], unsafe_allow_html=True)
+
+# 监听用户输入框并进行实时回答
+if prompt := st.chat_input("Ask about Wi-Fi, Breakfast, Spa, Services, or Internal Call..."):
+    # 1. 记录用户消息
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    
+    # 2. 生成机器人回答
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        full_response = get_bot_response(prompt)
+        
+        # 如果包含 HTML（卡片），直接渲染；否则打字显示
+        if "<div class=" in full_response:
+            message_placeholder.markdown(full_response, unsafe_allow_html=True)
+        else:
+            typed_text = ""
+            for chunk in full_response.split(" "):
+                typed_text += chunk + " "
+                time.sleep(0.015)
+                message_placeholder.markdown(typed_text + "▌")
+            message_placeholder.markdown(full_response)
+        
+    st.session_state.messages.append({"role": "assistant", "content": full_response})
