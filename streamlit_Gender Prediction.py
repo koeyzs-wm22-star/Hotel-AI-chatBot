@@ -13,12 +13,17 @@ st.title("🏨 酒店智能客服助手")
 st.caption("欢迎咨询入住、退房、早餐、Wi-Fi 等常见问题！")
 
 # 动态天气 API 获取函数 (使用免费开源的 Open-Meteo API)
-def get_realtime_weather(city="Kuala Lumpur"):
+def get_realtime_weather():
     try:
-        # 这里以吉隆坡坐标 (3.139, 101.6869) 为例，你可以更改为你的酒店所在城市坐标
-        # 北京: lat=39.9042, lon=116.4074 | 上海: lat=31.2304, lon=121.4737
+        # 吉隆坡坐标 (3.139, 101.6869) - 你可根据实际需求调整 latitude 和 longitude
         url = "https://api.open-meteo.com/v1/forecast?latitude=3.139&longitude=101.6869&current_weather=true"
-        response = requests.get(url, timeout=5)
+        
+        # 模拟浏览器 User-Agent 避免被 API 拦截
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        
+        response = requests.get(url, headers=headers, timeout=8)
         
         if response.status_code == 200:
             data = response.json()
@@ -28,17 +33,27 @@ def get_realtime_weather(city="Kuala Lumpur"):
             weather_code = current.get("weathercode", 0)
             
             # WMO 天气代码简易映射
-            weather_desc = "晴朗/多云"
+            weather_desc = "晴朗"
             if weather_code in [1, 2, 3]:
                 weather_desc = "多云"
-            elif weather_code in [51, 61, 80, 95]:
+            elif weather_code in [45, 48]:
+                weather_desc = "有雾"
+            elif weather_code in [51, 53, 55, 61, 63, 65, 80, 81, 82, 95]:
                 weather_desc = "阵雨/降雨"
                 
-            return f"🌤️ **酒店当地实时天气**：\n- 当前天气状况：{weather_desc}\n- 当前气温：{temp}°C\n- 风速：{windspeed} km/h\n\n出门请注意天气变化，如有需要可在酒店前台免费借用雨伞！"
+            return (
+                f"🌤️ **酒店当地实时天气**：\n\n"
+                f"- **当前天气状况**：{weather_desc}\n"
+                f"- **当前气温**：{temp}°C\n"
+                f"- **风速**：{windspeed} km/h\n\n"
+                f"💡 出门请注意天气变化，如有需要可在酒店前台免费借用雨伞！"
+            )
         else:
-            return "☀️ 当前酒店当地气温舒适，大约 28°C-32°C。详细天气可咨询前台。"
+            return f"⚠️ 天气服务请求失败 (HTTP 状态码: {response.status_code})。当前酒店当地气温舒适，大约 28°C-32°C。"
+            
     except Exception as e:
-        return "☀️ 当前酒店当地天气晴朗，适宜出行。如需借用雨伞请联系前台。"
+        # 如果出错，直接把错误原因打印出来方便排查
+        return f"⚠️ 天气 API 访问异常，原因: {e}。\n☀️ 当前酒店当地天气适宜出行，如需借用雨伞请联系前台。"
 
 # 2. 安全的文本清洗函数
 def clean_text(text):
