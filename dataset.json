@@ -60,11 +60,12 @@
     {
       "tag": "ask_wifi_steps",
       "patterns": [
-        "can you guide me step by step",
-        "step by step guide",
-        "how to connect step by step",
-        "tell me more details",
-        "how do I do that",
+        "step by step",
+        "guide me",
+        "tell me more",
+        "more details",
+        "how do i do that",
+        "how",
         "具体的步骤是什么",
         "一步步教我",
         "怎么一步步操作"
