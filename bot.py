@@ -221,6 +221,33 @@ LUXURY_RESPONSES = {
 </div>
 <i>If you require high-bandwidth access for video conferencing, our IT Butler is available 24/7 by dialing '0'.</i>
 """,
+
+"ask_wifi_steps": """
+📶 <strong>How to Connect to GrandApex_Guest Wi-Fi</strong><br><br>
+
+1️⃣ Open <strong>Settings → Wi-Fi</strong> on your device.<br><br>
+
+2️⃣ Select the network:
+<strong>GrandApex_Guest</strong><br><br>
+
+3️⃣ Wait for the login portal to appear automatically.
+If it does not appear, open your browser and visit:
+<strong>http://1.1.1.1</strong><br><br>
+
+4️⃣ Enter:
+<ul>
+<li>Room Number</li>
+<li>Guest Last Name</li>
+</ul>
+
+5️⃣ Click <strong>Connect</strong>.
+
+<hr>
+
+✅ Internet access is complimentary throughout the resort.
+
+If you experience any issues, please dial <strong>Extension '0'</strong> for our IT Butler.
+""",
     "ask_services": """
 ✨ <strong>Welcome to Exceptional Hospitality at The Grand Apex</strong><br><br>
 It is our privilege to provide a wide range of world-class amenities and personalized services during your stay:<br><br>
