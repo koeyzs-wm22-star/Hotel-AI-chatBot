@@ -214,7 +214,7 @@ LUXURY_RESPONSES = {
             <div style="font-size: 14px; font-weight: 700; color: #1A1A1A;">GrandApex_Guest</div>
         </div>
         <div>
-            <div style="font-size: 11px; color: #7A7570;">PASWWORD</div>
+            <div style="font-size: 11px; color: #7A7570;">PASSWORD</div>
             <div style="font-size: 14px; font-weight: 700; color: #8C6B2D;">Room Number & Last Name</div>
         </div>
     </div>
