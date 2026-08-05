@@ -210,11 +210,11 @@ LUXURY_RESPONSES = {
     <div style="font-size: 10px; color: #7A7570; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">SUITE 1808 HIGH-SPEED NETWORK</div>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
         <div>
-            <div style="font-size: 11px; color: #7A7570;">NETWORK</div>
+            <div style="font-size: 11px; color: #7A7570;">WIFI NAME</div>
             <div style="font-size: 14px; font-weight: 700; color: #1A1A1A;">GrandApex_Guest</div>
         </div>
         <div>
-            <div style="font-size: 11px; color: #7A7570;">ACCESS</div>
+            <div style="font-size: 11px; color: #7A7570;">PASWWORD</div>
             <div style="font-size: 14px; font-weight: 700; color: #8C6B2D;">Room Number & Last Name</div>
         </div>
     </div>
