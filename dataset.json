@@ -6,7 +6,7 @@
       "responses": ["您好！我是酒店 AI 客服助手，请问有什么可以帮您？"]
     },
     {
-      "tag": "ask_check_in_out",
+      "tag": "ask_checkin",
       "patterns": [
         "几点可以办理入住？",
         "退房时间是几点？",
@@ -20,7 +20,7 @@
       ]
     },
     {
-      "tag": "ask_breakfast_info",
+      "tag": "ask_breakfast",
       "patterns": [
         "早餐几点开始？",
         "早饭在几楼吃？",
