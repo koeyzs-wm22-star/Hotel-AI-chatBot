@@ -333,7 +333,7 @@ def extract_date_time_from_text(text):
         r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',  # 20/8/2026 or 20-8-2026
         r'(\d{1,2}\s+[a-zA-Z]{3,}\s+\d{4})',  # 20 Aug 2026
         r'(\d{1,2}\s+[a-zA-Z]+\s+\d{4})',     # 20 August 2026
-        r'\b(today|tomorrow|tmr|yesterday|yest|day after tomorrow|next week)\b',
+        r'\b(today|todays|tomorrow|tmr|tomorow|yesterday|yest|yday|day after tomorrow|next week)\b',
     ]
     
     for pattern in date_patterns:
@@ -344,11 +344,11 @@ def extract_date_time_from_text(text):
     
     # If no date found, check for keywords
     if not date_str:
-        if "today" in text_lower:
+        if "today" in text_lower or "todays" in text_lower:
             date_str = "today"
-        elif "tomorrow" in text_lower or "tmr" in text_lower:
+        elif "tomorrow" in text_lower or "tmr" in text_lower or "tomorow" in text_lower:
             date_str = "tomorrow"
-        elif "yesterday" in text_lower or "yest" in text_lower:
+        elif "yesterday" in text_lower or "yest" in text_lower or "yday" in text_lower:
             date_str = "yesterday"
         elif "day after tomorrow" in text_lower:
             date_str = "day after tomorrow"
@@ -1060,6 +1060,7 @@ I'm sorry, but the time slot <strong>{booking_datetime.strftime('%A, %B %d at %I
     
     if success:
         st.session_state.latest_spa_booking = f"{booking_datetime.strftime('%b %d at %I:%M %p')} - {service}"
+        st.session_state.awaiting_spa_booking = False
         return message
     else:
         return message
@@ -1093,12 +1094,18 @@ def get_bot_response(user_input):
         weather_res = get_realtime_weather()
         return correction_note + weather_res["formatted_text"]
 
-    # --- Check if this looks like a spa booking (has date/time) ---
-    # Check for date patterns
+    # --- IMPROVED: Check if this looks like a spa booking (has date/time) ---
+    # Expanded date keywords
+    date_keywords = [
+        'today', 'todays', 'tomorrow', 'tmr', 'tomorow', 
+        'yesterday', 'yest', 'yday', 'day after tomorrow', 'next week'
+    ]
+    
+    # Check for date patterns (including standalone keywords)
     date_patterns = [
         r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}',  # 20/8/2026 or 20-8-2026
         r'\d{1,2}\s+[a-zA-Z]{3,}\s+\d{4}',  # 20 Aug 2026
-        r'\b(today|tomorrow|tmr|yesterday|yest|day after tomorrow|next week)\b',
+        r'\b(today|todays|tomorrow|tmr|tomorow|yesterday|yest|yday|day after tomorrow|next week)\b',
     ]
     
     # Check for time patterns
@@ -1107,12 +1114,35 @@ def get_bot_response(user_input):
         r'\d{1,2}\s*(?:am|pm)\s*(?:o\'clock)?',  # 2 PM or 2pm
         r'\b(noon|midday|midnight)\b',
         r'\d{1,2}\s*(?:am|pm)',  # 10am, 2pm
+        r'\d{1,2}\s*(?:o\'clock)',  # 2 o'clock
+        r'\d{1,2}\s*(?:in the)?\s*(morning|afternoon|evening|night)',  # 9 in the morning
     ]
     
-    has_date = any(re.search(pattern, cleaned_input, re.IGNORECASE) for pattern in date_patterns)
-    has_time = any(re.search(pattern, cleaned_input, re.IGNORECASE) for pattern in time_patterns)
+    # Check if text contains any date keyword
+    has_date = any(keyword in cleaned_input.lower() for keyword in date_keywords)
     
-    # If input has date and time, it's likely a spa booking
+    # Also check with regex for date patterns
+    if not has_date:
+        for pattern in date_patterns:
+            if re.search(pattern, cleaned_input, re.IGNORECASE):
+                has_date = True
+                break
+    
+    # Check if text contains any time pattern
+    has_time = False
+    for pattern in time_patterns:
+        if re.search(pattern, cleaned_input, re.IGNORECASE):
+            has_time = True
+            break
+    
+    # Also check for standalone numbers that could be hours
+    if not has_time:
+        # Look for numbers 1-12 that might be hours
+        numbers = re.findall(r'\b([1-9]|1[0-2])\b', cleaned_input)
+        if numbers:
+            has_time = True
+    
+    # If input has date and time, it's a spa booking
     is_spa_booking_likely = has_date and has_time
     
     # --- Check if this is a spa booking request ---
@@ -1128,7 +1158,7 @@ def get_bot_response(user_input):
     if st.session_state.awaiting_spa_booking or is_spa_booking_request or is_spa_booking_likely:
         result = process_spa_booking(user_input)
         # Keep the context active if validation failed, so user can try again
-        if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result:
+        if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result or "needs a date" in result or "needs a time" in result:
             st.session_state.awaiting_spa_booking = True
         else:
             st.session_state.awaiting_spa_booking = False
@@ -1139,7 +1169,7 @@ def get_bot_response(user_input):
         st.session_state.awaiting_spa_booking = False
         result = process_spa_booking(user_input)
         # Keep context active if validation failed
-        if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result:
+        if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result or "needs a date" in result or "needs a time" in result:
             st.session_state.awaiting_spa_booking = True
         return result
         
