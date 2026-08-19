@@ -10,6 +10,8 @@ import streamlit.components.v1 as components
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline, FeatureUnion
+from difflib import get_close_matches
+from collections import Counter
 
 # ==========================================
 # 1. Page Config & Session State Setup
@@ -71,6 +73,161 @@ def clean_text(text):
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
+def correct_spelling(text):
+    """
+    Corrects common spelling mistakes using a dictionary of keywords.
+    Uses Levenshtein distance and common typo patterns.
+    """
+    if not text or len(text) < 2:
+        return text
+    
+    # Common misspellings dictionary (expand this as needed)
+    common_typos = {
+        # Weather-related
+        'wheather': 'weather',
+        'wether': 'weather',
+        'weater': 'weather',
+        'weathr': 'weather',
+        'forcast': 'forecast',
+        'forcast': 'forecast',
+        'temprature': 'temperature',
+        'temp': 'temperature',
+        'temparature': 'temperature',
+        'tempature': 'temperature',
+        'rainy': 'rain',
+        'raining': 'rain',
+        'suny': 'sunny',
+        'sunney': 'sunny',
+        
+        # Wi-Fi related
+        'wifi': 'wifi',
+        'wify': 'wifi',
+        'wifii': 'wifi',
+        'wi-fi': 'wifi',
+        'password': 'password',
+        'pasword': 'password',
+        'passward': 'password',
+        'conect': 'connect',
+        'connet': 'connect',
+        'conection': 'connection',
+        'network': 'network',
+        'internet': 'internet',
+        'intenet': 'internet',
+        
+        # Spa related
+        'spa': 'spa',
+        'massage': 'massage',
+        'masage': 'massage',
+        'massge': 'massage',
+        'reservation': 'reservation',
+        'reservasion': 'reservation',
+        'reservtion': 'reservation',
+        'book': 'book',
+        'booking': 'booking',
+        'appointment': 'appointment',
+        'appointment': 'appointment',
+        'appontment': 'appointment',
+        
+        # Breakfast/Dining
+        'breakfast': 'breakfast',
+        'breakfat': 'breakfast',
+        'breakfirst': 'breakfast',
+        'brakfast': 'breakfast',
+        'dinner': 'dinner',
+        'lunch': 'lunch',
+        'restaurant': 'restaurant',
+        'resturant': 'restaurant',
+        'restaurent': 'restaurant',
+        
+        # Check-in related
+        'checkin': 'check-in',
+        'check out': 'check-out',
+        'chackin': 'check-in',
+        'checkin': 'check-in',
+        
+        # Services
+        'service': 'services',
+        'servises': 'services',
+        'servies': 'services',
+        'amenity': 'amenities',
+        'ameneties': 'amenities',
+        'facility': 'facilities',
+        'facilites': 'facilities',
+        
+        # Common typos
+        'helo': 'hello',
+        'hi': 'hello',
+        'hey': 'hello',
+        'pls': 'please',
+        'plese': 'please',
+        'thanx': 'thanks',
+        'thx': 'thanks',
+        'tahnks': 'thanks',
+        'ty': 'thank you',
+        'yeah': 'yes',
+        'yep': 'yes',
+        'nope': 'no',
+        'noo': 'no',
+        'yea': 'yes',
+        'ok': 'okay',
+        'k': 'okay',
+        
+        # Attractions in KL
+        'petronas': 'petronas towers',
+        'twin towers': 'petronas towers',
+        'klcc': 'klcc park',
+        'pavilion': 'pavilion kl',
+        'aquaria': 'aquaria klcc',
+        'batu caves': 'batu caves',
+        'batucaves': 'batu caves',
+        'islamic museum': 'islamic arts museum',
+        
+        # Hotel-specific
+        'concierge': 'concierge',
+        'concierge': 'concierge',
+        'butler': 'butler',
+        'houskeeping': 'housekeeping',
+        'houskeeping': 'housekeeping',
+        'housekeepin': 'housekeeping',
+        'front desk': 'front desk',
+        'reception': 'reception',
+        'reception': 'reception',
+    }
+    
+    # Split text into words
+    words = text.split()
+    corrected_words = []
+    
+    for word in words:
+        # Check if word is in common typos dictionary
+        if word.lower() in common_typos:
+            corrected_words.append(common_typos[word.lower()])
+        else:
+            # Try to find close matches in dictionary (only for longer words to avoid false positives)
+            if len(word) > 3:
+                # Check against all dictionary keys
+                close_matches = get_close_matches(word.lower(), common_typos.keys(), n=1, cutoff=0.8)
+                if close_matches:
+                    corrected_words.append(common_typos[close_matches[0]])
+                else:
+                    corrected_words.append(word)
+            else:
+                corrected_words.append(word)
+    
+    return ' '.join(corrected_words)
+
+def spell_check_and_correct(user_input):
+    """
+    Main function to check and correct spelling in user input.
+    Returns both corrected text and a flag indicating if corrections were made.
+    """
+    original = user_input
+    corrected = correct_spelling(original)
+    
+    # If correction is different, log it and use corrected version
+    if corrected != original:
+        return corrected, True
+    return original, False
 
 # ==========================================
 # 3. Real-Time Weather API Integration with Attractions
@@ -369,7 +526,20 @@ I would be delighted to arrange this for you, Mr. Vance! To secure your preferre
 2. <strong>Number of guests</strong> (e.g., 1 pax)<br><br>
 Alternatively, you may dial <strong>Ext '802'</strong> to speak directly with our Spa Receptionist for immediate confirmation.
 """,
-    "ask_dining": "🍽️ <strong>Gastronomic Experiences</strong><br><br>The Grand Apex features three award-winning venues:<br>1. <strong>L'Aura (Floor 48)</strong> - Michelin French Fine Dining<br>2. <strong>Sakura Sky Lounge (Floor 49)</strong> - Contemporary Omakase<br>3. <strong>The Atrium (Floor 1)</strong> - All-Day International Buffet"
+    "ask_dining": "🍽️ <strong>Gastronomic Experiences</strong><br><br>The Grand Apex features three award-winning venues:<br>1. <strong>L'Aura (Floor 48)</strong> - Michelin French Fine Dining<br>2. <strong>Sakura Sky Lounge (Floor 49)</strong> - Contemporary Omakase<br>3. <strong>The Atrium (Floor 1)</strong> - All-Day International Buffet",
+    "ask_attractions": """
+🏙️ <strong>Top Attractions in Kuala Lumpur</strong><br><br>
+✨ <strong>Must-Visit Places:</strong><br><br>
+🏗️ <strong>Petronas Twin Towers</strong> — Iconic landmark with Skybridge and observation deck<br><br>
+🌳 <strong>KLCC Park</strong> — Beautiful urban park with jogging trail and Lake Symphony<br><br>
+🛍️ <strong>Pavilion KL & Suria KLCC</strong> — Premier shopping destinations<br><br>
+🏛️ <strong>Islamic Arts Museum</strong> — World-class Islamic art collection<br><br>
+🕌 <strong>National Mosque</strong> — Stunning modern Islamic architecture<br><br>
+🐟 <strong>Aquaria KLCC</strong> — Spectacular underwater world experience<br><br>
+🌸 <strong>Perdana Botanical Garden</strong> — Tropical gardens and orchid display<br><br>
+🖼️ <strong>National Art Gallery</strong> — Malaysian artistic heritage<br><br>
+📞 For transportation arrangements, please dial <strong>Ext '0'</strong> for our Concierge Desk!
+"""
 }
 
 @st.cache_resource
@@ -437,6 +607,16 @@ def load_and_train_model():
         X.append(clean_text(p))
         y.append("ask_weather")
 
+    # 5. Attractions
+    attractions_patterns = [
+        "what to do in kuala lumpur", "tourist attractions", "places to visit",
+        "sightseeing", "tourist spots", "things to do", "吉隆坡有什么好玩的",
+        "旅游景点", "去哪里玩", "观光推荐"
+    ]
+    for p in attractions_patterns:
+        X.append(clean_text(p))
+        y.append("ask_attractions")
+
     if not X:
         X = ["hi", "wifi", "weather", "breakfast", "spa", "checkin", "call front desk", "services"]
         y = ["greet", "ask_wifi", "ask_weather", "ask_breakfast", "ask_spa", "ask_checkin", "internal_call", "ask_services"]
@@ -454,7 +634,16 @@ def load_and_train_model():
 model = load_and_train_model()
 
 def get_bot_response(user_input):
-    cleaned_input = clean_text(user_input)
+    # First, check and correct spelling
+    corrected_input, was_corrected = spell_check_and_correct(user_input)
+    
+    # If corrected, add a friendly note (optional)
+    if was_corrected and corrected_input != user_input:
+        correction_note = f"✨ <small><i>(I understood you meant: \"{corrected_input}\")</i></small><br><br>"
+    else:
+        correction_note = ""
+    
+    cleaned_input = clean_text(corrected_input)
     
     if not cleaned_input or not cleaned_input.strip():
         return "Greetings! How may I assist your stay at The Grand Apex today?"
@@ -471,7 +660,8 @@ def get_bot_response(user_input):
         confidence = probs[max_idx]
         predicted_tag = model.classes_[max_idx]
         
-        if confidence < 0.18:
+        # Lower confidence threshold for better typo tolerance
+        if confidence < 0.15:
             return (
                 "I apologize, but I want to ensure you receive the most precise assistance. "
                 "Could you please specify if you are asking about <strong>Wi-Fi</strong>, <strong>Breakfast</strong>, <strong>Services</strong>, or <strong>Check-in</strong>?<br><br>"
@@ -480,16 +670,16 @@ def get_bot_response(user_input):
         
         if predicted_tag in ["ask_spa", "ask_spa_booking"]:
             st.session_state.awaiting_spa_booking = True
-            return LUXURY_RESPONSES.get(predicted_tag)
+            return correction_note + LUXURY_RESPONSES.get(predicted_tag)
 
         if predicted_tag == "ask_weather":
             weather_res = get_realtime_weather()
-            return weather_res["formatted_text"]
+            return correction_note + weather_res["formatted_text"]
 
         if predicted_tag == "internal_call":
-            return render_internal_call_card()
+            return correction_note + render_internal_call_card()
 
-        return LUXURY_RESPONSES.get(predicted_tag, "Thank you. Our Concierge Desk is entirely at your service.")
+        return correction_note + LUXURY_RESPONSES.get(predicted_tag, "Thank you. Our Concierge Desk is entirely at your service.")
         
     except Exception:
         return "I am at your service. Please feel free to ask about our room amenities, dining, or guest services."
