@@ -89,37 +89,139 @@
     {
       "tag": "ask_weather",
       "patterns": [
-      "today weather",
-      "tomorrow weather",
-      "weather forecast",
-      "what is the weather like tomorrow",
-      "how is the weather next two days",
-      "今天天气怎么样",
-      "明天天气怎么样",
-      "后天天气怎么样",
-      "未来几天天气预报",
-      "明天会下雨吗",
-      "后天热不热"
+        "today weather",
+        "tomorrow weather",
+        "weather forecast",
+        "what is the weather like tomorrow",
+        "how is the weather next two days",
+        "今天天气怎么样",
+        "明天天气怎么样",
+        "后天天气怎么样",
+        "未来几天天气预报",
+        "明天会下雨吗",
+        "后天热不热",
+        "what's the weather today",
+        "how's the weather",
+        "is it going to rain",
+        "will it rain today",
+        "weather in kuala lumpur",
+        "current weather",
+        "temperature today",
+        "how hot is it",
+        "is it sunny outside",
+        "what's the temperature",
+        "天气预报",
+        "天气如何",
+        "现在天气怎么样",
+        "今天温度多少",
+        "外面天气怎么样",
+        "天气好吗",
+        "会不会下雨",
+        "天气情况",
+        "weather",
+        "what is the weather like",
+        "how is the weather today",
+        "what's the forecast",
+        "tell me the weather"
       ],
       "responses": [
-        "API_WEATHER" 
+        "API_WEATHER"
       ]
     },
     {
       "tag": "ask_services",
       "patterns": [
-      "what services do you have",
-      "what amenities are available",
-      "what can I do at this hotel",
-      "hotel facilities",
-      "list your services",
-      "what do you offer",
-      "有什么服务",
-      "酒店有什么设施",
-      "你们提供什么服务"
-    ],
-    "responses": [
-    "✨ **Welcome to Exceptional Hospitality at The Grand Apex**\n\nIt is our privilege to provide a wide range of world-class amenities and personalized services during your stay:\n\n🍷 **Gastronomy & Dining**\n• 24-Hour In-Room Gourmet Dining\n• Michelin-Starred Fine Dining & Sky Garden Bar\n\n🧖‍♀️ **Wellness & Leisure**\n• Apex Executive Spa & Thermal Suites (Floor 5)\n• Heated Rooftop Infinity Sky Pool & Cabanas\n• 24/7 Technogym Fitness Suite\n\n🛎️ **Personalized Guest Care**\n• Executive Butler & Express Pressing Service\n• Private Airport Limousine Transfer\n• Direct In-Room Concierge Extension\n\n💡 *May I assist you with reserving a spa appointment, booking a restaurant table, or arranging transport?*"
+        "what services do you have",
+        "what amenities are available",
+        "what can I do at this hotel",
+        "hotel facilities",
+        "list your services",
+        "what do you offer",
+        "有什么服务",
+        "酒店有什么设施",
+        "你们提供什么服务"
+      ],
+      "responses": [
+        "✨ **Welcome to Exceptional Hospitality at The Grand Apex**\n\nIt is our privilege to provide a wide range of world-class amenities and personalized services during your stay:\n\n🍷 **Gastronomy & Dining**\n• 24-Hour In-Room Gourmet Dining\n• Michelin-Starred Fine Dining & Sky Garden Bar\n\n🧖‍♀️ **Wellness & Leisure**\n• Apex Executive Spa & Thermal Suites (Floor 5)\n• Heated Rooftop Infinity Sky Pool & Cabanas\n• 24/7 Technogym Fitness Suite\n\n🛎️ **Personalized Guest Care**\n• Executive Butler & Express Pressing Service\n• Private Airport Limousine Transfer\n• Direct In-Room Concierge Extension\n\n💡 *May I assist you with reserving a spa appointment, booking a restaurant table, or arranging transport?*"
+      ]
+    },
+    {
+      "tag": "ask_spa",
+      "patterns": [
+        "spa treatments",
+        "spa services",
+        "what spa services do you have",
+        "massage options",
+        "spa menu",
+        "spa prices",
+        "how much is spa",
+        "spa hours",
+        "when is spa open",
+        "spa price list",
+        "spa价格",
+        "spa多少钱",
+        "按摩多少钱",
+        "spa营业时间",
+        "有什么spa服务"
+      ],
+      "responses": [
+        "🧖‍♀️ **Apex Executive Wellness & Spa**\n\nLocated on Floor 5, our Spa offers signature aromatherapy, hot stone therapy, and luxury facials.\n\n🕒 **Operating Hours:** Daily **09:00 AM – 22:00 PM** (Last appointment at 20:30 PM)\n\n💵 **Signature Menu & Pricing:**\n• *Apex Aromatherapy Massage* (60 min) — **$180**\n• *Deep Tissue Recovery Therapy* (60 min) — **$200**\n• *Himalayan Hot Stone Rejuvenation* (90 min) — **$260**\n• *Customized Hydrating Facial* (60 min) — **$190**\n\n📞 **Reservation:** Dial **Ext '802'** from your room phone, or tell me your preferred date, time, and guest count to hold a slot!"
+      ]
+    },
+    {
+      "tag": "ask_spa_booking",
+      "patterns": [
+        "how to book spa",
+        "I want to book spa",
+        "book a massage",
+        "make spa appointment",
+        "reserve spa",
+        "book spa",
+        "怎么预约spa",
+        "帮我订spa",
+        "我想做spa",
+        "预约spa",
+        "book a spa treatment",
+        "schedule spa",
+        "make a reservation for spa",
+        "can I book spa"
+      ],
+      "responses": [
+        "📅 **Spa Reservation Request**\n\nI would be delighted to arrange this for you, Mr. Vance! To secure your preferred time, please specify:\n1. **Your preferred date & time** (e.g., Today at 15:00 PM)\n2. **Number of guests** (e.g., 1 pax)\n\nAlternatively, you may dial **Ext '802'** to speak directly with our Spa Receptionist for immediate confirmation."
+      ]
+    },
+    {
+      "tag": "ask_dining",
+      "patterns": [
+        "restaurant recommendations",
+        "where to eat",
+        "dining options",
+        "food options",
+        "fine dining",
+        "餐厅推荐",
+        "有什么餐厅",
+        "去哪里吃饭"
+      ],
+      "responses": [
+        "🍽️ **Gastronomic Experiences**\n\nThe Grand Apex features three award-winning venues:\n1. **L'Aura (Floor 48)** - Michelin French Fine Dining\n2. **Sakura Sky Lounge (Floor 49)** - Contemporary Omakase\n3. **The Atrium (Floor 1)** - All-Day International Buffet"
+      ]
+    },
+    {
+      "tag": "ask_attractions",
+      "patterns": [
+        "what to do in kuala lumpur",
+        "tourist attractions",
+        "places to visit",
+        "sightseeing",
+        "tourist spots",
+        "things to do",
+        "吉隆坡有什么好玩的",
+        "旅游景点",
+        "去哪里玩",
+        "观光推荐"
+      ],
+      "responses": [
+        "🏙️ **Top Attractions in Kuala Lumpur**\n\n✨ **Must-Visit Places:**\n\n🏗️ **Petronas Twin Towers** — Iconic landmark with Skybridge and observation deck\n\n🌳 **KLCC Park** — Beautiful urban park with jogging trail and Lake Symphony\n\n🛍️ **Pavilion KL & Suria KLCC** — Premier shopping destinations\n\n🏛️ **Islamic Arts Museum** — World-class Islamic art collection\n\n🕌 **National Mosque** — Stunning modern Islamic architecture\n\n🐟 **Aquaria KLCC** — Spectacular underwater world experience\n\n🌸 **Perdana Botanical Garden** — Tropical gardens and orchid display\n\n🖼️ **National Art Gallery** — Malaysian artistic heritage\n\n📞 For transportation arrangements, please dial **Ext '0'** for our Concierge Desk!"
       ]
     }
   ]
