@@ -115,6 +115,8 @@ def correct_spelling(text):
         'ameneties': 'amenities',
         'resturant': 'restaurant',
         'spa': 'spa',
+        'yest': 'yesterday',
+        'tmr': 'tomorrow',
     }
     
     words = text.split()
@@ -153,10 +155,10 @@ def parse_date_from_string(date_str):
     Parse date from various formats including:
     - 20/8/2026
     - 20-8-2026
-    - 20/08/2026
     - 20 August 2026
     - today
     - tomorrow
+    - yesterday
     - day after tomorrow
     Returns (datetime_obj, error_message)
     """
@@ -167,6 +169,8 @@ def parse_date_from_string(date_str):
         return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0), None
     elif date_str in ["tomorrow", "tmr", "tomorow"]:
         return (datetime.now() + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0), None
+    elif date_str in ["yesterday", "yest", "yday"]:
+        return (datetime.now() - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0), None
     elif date_str in ["day after tomorrow", "day after tmr"]:
         return (datetime.now() + timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0), None
     elif "next week" in date_str:
@@ -218,7 +222,7 @@ def parse_date_from_string(date_str):
             except ValueError:
                 pass
     
-    return None, "I couldn't understand the date format. Please use formats like '20/8/2026', '20-8-2026', 'today', or 'tomorrow'."
+    return None, "I couldn't understand the date format. Please use formats like '20/8/2026', '20-8-2026', 'today', 'tomorrow', or 'yesterday'."
 
 def parse_time_from_string(time_str):
     """
@@ -245,10 +249,8 @@ def parse_time_from_string(time_str):
     # Check if it's a standalone number (like "2")
     if re.match(r'^\d{1,2}$', time_str):
         hour = int(time_str)
-        # Validate hour
         if hour < 0 or hour > 23:
             return None, None, f"Invalid hour: {hour}. Please use a number between 0 and 23."
-        # If hour is less than 9, assume AM (unless it's 12)
         if hour < 9:
             return hour, 0, None
         elif hour == 12:
@@ -285,13 +287,10 @@ def parse_time_from_string(time_str):
                 hour = int(parts[0])
                 minute = int(parts[1])
                 if 0 <= hour <= 23 and 0 <= minute <= 59:
-                    # If hour > 12, it's PM (24-hour format)
                     if hour > 12:
                         return hour, minute, None
-                    # If hour is 12, it's noon
                     elif hour == 12:
                         return 12, minute, None
-                    # Otherwise, it's ambiguous - assume PM for 1-8, AM for <1
                     elif hour < 9:
                         return hour, minute, None
                     else:
@@ -330,12 +329,11 @@ def extract_date_time_from_text(text):
             break
     
     # Extract date
-    # Try to find date patterns
     date_patterns = [
         r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',  # 20/8/2026 or 20-8-2026
         r'(\d{1,2}\s+[a-zA-Z]{3,}\s+\d{4})',  # 20 Aug 2026
         r'(\d{1,2}\s+[a-zA-Z]+\s+\d{4})',     # 20 August 2026
-        r'\b(today|tomorrow|tmr|day after tomorrow|next week)\b',
+        r'\b(today|tomorrow|tmr|yesterday|yest|day after tomorrow|next week)\b',
     ]
     
     for pattern in date_patterns:
@@ -344,12 +342,14 @@ def extract_date_time_from_text(text):
             date_str = match.group(1) if match.groups() else match.group(0)
             break
     
-    # If no date found, check for "today" or "tomorrow" without regex
+    # If no date found, check for keywords
     if not date_str:
         if "today" in text_lower:
             date_str = "today"
         elif "tomorrow" in text_lower or "tmr" in text_lower:
             date_str = "tomorrow"
+        elif "yesterday" in text_lower or "yest" in text_lower:
+            date_str = "yesterday"
         elif "day after tomorrow" in text_lower:
             date_str = "day after tomorrow"
         elif "next week" in text_lower:
@@ -370,14 +370,12 @@ def extract_date_time_from_text(text):
             time_str = match.group(1) if match.groups() else match.group(0)
             break
     
-    # If no time found, look for a standalone number (like "2")
+    # If no time found, look for a standalone number
     if not time_str:
-        # Look for numbers that could be hours
         numbers = re.findall(r'\b(\d{1,2})\b', text_lower)
         for num in numbers:
             hour = int(num)
             if 1 <= hour <= 12:
-                # Check if there's AM/PM context
                 if "am" in text_lower:
                     time_str = f"{hour} AM"
                 elif "pm" in text_lower:
@@ -419,10 +417,6 @@ def validate_booking_datetime(booking_datetime, duration_minutes=60):
     elif booking_datetime.hour == 22 and booking_datetime.minute > 0:
         return False, f"❌ I'm sorry, but our spa closes at 10:00 PM. {booking_datetime.strftime('%I:%M %p')} is too late. <br><br>💡 <i>The latest appointment we can take is 9:30 PM.</i>"
     
-    # Check if booking is on a Sunday (optional - adjust as needed)
-    # if booking_datetime.weekday() == 6:  # Sunday
-    #     return False, "❌ I'm sorry, but our spa is closed on Sundays. Please select another day."
-    
     return True, None
 
 
@@ -434,27 +428,22 @@ def is_spa_slot_available(booking_datetime, duration_minutes=60, exclude_booking
     Check if a spa time slot is available.
     Returns (is_available, conflicting_bookings)
     """
-    # Check if booking is in the past
     if booking_datetime < datetime.now():
         return False, "Past Booking"
     
-    # Check if booking is within operating hours (9 AM - 10 PM)
     if booking_datetime.hour < 9 or booking_datetime.hour >= 22:
         return False, "Outside Operating Hours"
     
-    # Check for conflicts with existing bookings
     booking_end = booking_datetime + timedelta(minutes=duration_minutes)
     conflicting_bookings = []
     
     for slot, booking in st.session_state.spa_bookings.items():
-        # Skip if this is the booking being updated
         if exclude_booking and slot == exclude_booking:
             continue
             
         existing_start = datetime.strptime(slot, "%Y-%m-%d %H:%M")
         existing_end = existing_start + timedelta(minutes=booking.get("duration", 60))
         
-        # Check for overlap
         if (booking_datetime < existing_end and booking_end > existing_start):
             conflicting_bookings.append({
                 "time": slot,
@@ -503,11 +492,9 @@ def book_spa_slot(guest_name, service, booking_datetime, duration_minutes=60):
     Book a spa slot
     Returns (success, message)
     """
-    # Validate date is not in past
     if booking_datetime < datetime.now():
         return False, "❌ Booking date and time cannot be in the past. Please select a future date and time."
     
-    # Check if slot is available
     is_available, conflict = is_spa_slot_available(booking_datetime, duration_minutes)
     
     if not is_available:
@@ -520,7 +507,6 @@ def book_spa_slot(guest_name, service, booking_datetime, duration_minutes=60):
         else:
             return False, "❌ This time slot is not available. Please choose another time."
     
-    # Make the booking
     slot_key = booking_datetime.strftime("%Y-%m-%d %H:%M")
     st.session_state.spa_bookings[slot_key] = {
         "guest_name": guest_name,
@@ -1044,7 +1030,7 @@ I'm sorry, but our spa closes at <strong>10:00 PM</strong>. {booking_datetime.st
 """
     
     # --- TIME SLOT AVAILABILITY CHECK ---
-    is_available, conflict = is_spa_slot_available(booking_datetime, 60)  # Default 60 minutes
+    is_available, conflict = is_spa_slot_available(booking_datetime, 60)
     
     if not is_available:
         if conflict == "Past Booking":
@@ -1091,7 +1077,7 @@ def get_bot_response(user_input):
     if not cleaned_input or not cleaned_input.strip():
         return "Greetings! How may I assist your stay at The Grand Apex today?"
 
-    # --- Check if this is a weather query FIRST ---
+    # --- Check if this is a weather query ---
     weather_keywords = [
         "weather", "temperature", "forecast", "rain", "sunny", "cloudy", 
         "hot", "cold", "warm", "humid", "degrees", "°c", "°f",
@@ -1106,7 +1092,43 @@ def get_bot_response(user_input):
         weather_res = get_realtime_weather()
         return correction_note + weather_res["formatted_text"]
 
-    # Spa Booking context handling
+    # --- NEW: Check if this looks like a spa booking (has date/time) ---
+    # Check for date patterns
+    date_patterns = [
+        r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}',  # 20/8/2026 or 20-8-2026
+        r'\d{1,2}\s+[a-zA-Z]{3,}\s+\d{4}',  # 20 Aug 2026
+        r'\b(today|tomorrow|tmr|yesterday|yest|day after tomorrow|next week)\b',
+    ]
+    
+    # Check for time patterns
+    time_patterns = [
+        r'\d{1,2}:\d{2}\s*(?:am|pm)?',  # 2:30 PM or 14:30
+        r'\d{1,2}\s*(?:am|pm)\s*(?:o\'clock)?',  # 2 PM or 2pm
+        r'\b(noon|midday|midnight)\b',
+        r'\d{1,2}\s*(?:am|pm)',  # 10am, 2pm
+    ]
+    
+    has_date = any(re.search(pattern, cleaned_input, re.IGNORECASE) for pattern in date_patterns)
+    has_time = any(re.search(pattern, cleaned_input, re.IGNORECASE) for pattern in time_patterns)
+    
+    # If input has date and time, it's likely a spa booking
+    is_spa_booking_likely = has_date and has_time
+    
+    # --- NEW: Check if this is a spa booking request ---
+    spa_booking_keywords = [
+        "book spa", "spa booking", "reserve spa", "appointment", 
+        "massage", "facial", "hot stone", "aromatherapy",
+        "预约spa", "订spa", "spa预约"
+    ]
+    
+    is_spa_booking_request = any(keyword in cleaned_input.lower() for keyword in spa_booking_keywords)
+    
+    # --- NEW: Force spa booking context if it looks like a booking ---
+    if is_spa_booking_request or is_spa_booking_likely:
+        # If the user is in the middle of a spa booking conversation or just started one
+        return process_spa_booking(user_input)
+
+    # Spa Booking context handling (for ongoing conversations)
     if st.session_state.awaiting_spa_booking:
         st.session_state.awaiting_spa_booking = False
         return process_spa_booking(user_input)
