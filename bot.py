@@ -146,199 +146,315 @@ def spell_check_and_correct(user_input):
 
 
 # ==========================================
-# 3. Spa Booking Validation System
+# 3. Enhanced Date/Time Parsing & Validation
 # ==========================================
-def parse_booking_datetime(date_str, time_str):
+def parse_date_from_string(date_str):
     """
-    Parse user's date and time input into datetime object.
-    Enhanced with better handling of ambiguous times.
+    Parse date from various formats including:
+    - 20/8/2026
+    - 20-8-2026
+    - 20/08/2026
+    - 20 August 2026
+    - today
+    - tomorrow
+    - day after tomorrow
     Returns (datetime_obj, error_message)
     """
-    try:
-        # Parse date
-        date_obj = None
-        date_formats = [
-            "%Y-%m-%d",  # 2026-07-28
-            "%d/%m/%Y",  # 28/07/2026
-            "%d-%m-%Y",  # 28-07-2026
-            "%d %B %Y",  # 28 July 2026
-            "%B %d %Y",  # July 28 2026
-            "%d-%b-%Y",  # 28-Jul-2026
-            "%b %d %Y",  # Jul 28 2026
-            "%Y%m%d",    # 20260728
-        ]
-        
-        # Handle "today", "tomorrow", "next week" keywords
-        date_lower = date_str.lower().strip()
-        if date_lower in ["today", "todays"]:
-            date_obj = datetime.now()
-        elif date_lower in ["tomorrow", "tmr", "tomorow"]:
-            date_obj = datetime.now() + timedelta(days=1)
-        elif date_lower in ["day after tomorrow", "day after tmr"]:
-            date_obj = datetime.now() + timedelta(days=2)
-        elif "next week" in date_lower:
-            date_obj = datetime.now() + timedelta(days=7)
-        else:
-            for fmt in date_formats:
-                try:
-                    date_obj = datetime.strptime(date_str.strip(), fmt)
-                    break
-                except ValueError:
-                    continue
-        
-        if not date_obj:
-            return None, "I couldn't understand the date format. Please use format like '2026-07-28', '28/07/2026', 'today', or 'tomorrow'."
-        
-        # Parse time with enhanced validation
-        time_str_clean = time_str.strip().lower()
-        
-        # Handle special time cases
-        if time_str_clean in ["now", "right now", "asap"]:
-            time_obj = datetime.now()
-        elif time_str_clean in ["noon", "midday", "12 noon"]:
-            time_obj = datetime.strptime("12:00 PM", "%I:%M %p")
-        elif time_str_clean in ["midnight", "12 midnight"]:
-            time_obj = datetime.strptime("12:00 AM", "%I:%M %p")
-        else:
-            # Try to parse with various formats
-            time_formats = [
-                ("%I:%M %p", True),  # 2:30 PM - with AM/PM
-                ("%I:%M%p", True),   # 2:30PM - no space
-                ("%I %p", True),     # 2 PM
-                ("%I%p", True),      # 2PM
-                ("%H:%M", False),    # 14:30 - 24-hour
-                ("%H%M", False),     # 1430 - 24-hour
-                ("%I", True),        # 2 - AMBIGUOUS!
-                ("%H", False),       # 14 - 24-hour
-            ]
-            
-            time_obj = None
-            has_am_pm = False
-            
-            for fmt, has_ampm_flag in time_formats:
-                try:
-                    time_obj = datetime.strptime(time_str_clean, fmt)
-                    has_am_pm = has_ampm_flag
-                    break
-                except ValueError:
-                    continue
-            
-            # If parsing failed, try with ":" variations
-            if not time_obj and ":" in time_str_clean:
-                try:
-                    parts = time_str_clean.split(":")
-                    if len(parts) == 2:
-                        hour = int(parts[0])
-                        minute = int(parts[1])
-                        if 0 <= hour <= 23 and 0 <= minute <= 59:
-                            time_obj = datetime.now().replace(hour=hour, minute=minute, second=0, microsecond=0)
-                except:
-                    pass
-            
-            # If still no time_obj, try to parse digits only
-            if not time_obj:
-                digits = re.findall(r'\d+', time_str_clean)
-                if digits:
-                    hour = int(digits[0])
-                    minute = int(digits[1]) if len(digits) > 1 else 0
-                    
-                    # Determine if it's AM or PM based on context
-                    am_pm = None
-                    
-                    if "am" in time_str_clean:
-                        am_pm = "AM"
-                    elif "pm" in time_str_clean:
-                        am_pm = "PM"
-                    elif "morning" in time_str_clean:
-                        am_pm = "AM"
-                    elif "afternoon" in time_str_clean or "evening" in time_str_clean or "night" in time_str_clean:
-                        am_pm = "PM"
-                    elif hour < 6:
-                        am_pm = "AM"
-                    elif 6 <= hour < 12:
-                        am_pm = "AM"
-                    elif hour == 12:
-                        if "night" in time_str_clean or "midnight" in time_str_clean:
-                            am_pm = "AM"
-                        else:
-                            am_pm = "PM"
-                    elif hour > 12:
-                        am_pm = "PM"
-                    
-                    if not am_pm:
-                        if "noon" in time_str_clean:
-                            hour = 12
-                            minute = 0
-                            am_pm = "PM"
-                        elif "midnight" in time_str_clean:
-                            hour = 12
-                            minute = 0
-                            am_pm = "AM"
-                        else:
-                            if hour == 12:
-                                am_pm = "PM"
-                            elif hour < 6:
-                                am_pm = "AM"
-                            elif hour < 12:
-                                am_pm = "AM" if hour < 9 else "PM"
-                            else:
-                                am_pm = "PM"
-                    
-                    if am_pm == "PM" and hour < 12:
-                        hour += 12
-                    elif am_pm == "AM" and hour == 12:
-                        hour = 0
-                    
-                    if minute < 0 or minute > 59:
-                        minute = 0
-                    
-                    time_obj = datetime.now().replace(hour=hour, minute=minute, second=0, microsecond=0)
-        
-        if not time_obj:
-            return None, "I couldn't understand the time format. Please use format like '14:30', '2:30 PM', '2 PM', or '2' (I'll assume 2:00 PM)."
-        
-        # Combine date and time
-        booking_datetime = date_obj.replace(
-            hour=time_obj.hour,
-            minute=time_obj.minute,
-            second=0,
-            microsecond=0
-        )
-        
-        # Validate the booking time is within operating hours
-        if booking_datetime.hour < 9 or booking_datetime.hour >= 22:
-            if booking_datetime.date() > datetime.now().date():
-                if booking_datetime.hour < 9:
-                    return None, f"⚠️ Our spa opens at 9:00 AM. Would you like me to book you for 9:00 AM instead? <br><br>💡 <i>Our operating hours are 9:00 AM to 10:00 PM.</i>"
-                else:
-                    return None, f"⚠️ Our spa closes at 10:00 PM. The latest appointment we can take is 9:30 PM. <br><br>💡 <i>Our operating hours are 9:00 AM to 10:00 PM.</i>"
-        
-        return booking_datetime, None
-        
-    except Exception as e:
-        return None, f"I couldn't understand the date/time. Please try again with format like '2026-07-28 at 14:30' or 'tomorrow at 2 PM'."
+    date_str = date_str.strip().lower()
+    
+    # Handle special keywords
+    if date_str in ["today", "todays"]:
+        return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0), None
+    elif date_str in ["tomorrow", "tmr", "tomorow"]:
+        return (datetime.now() + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0), None
+    elif date_str in ["day after tomorrow", "day after tmr"]:
+        return (datetime.now() + timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0), None
+    elif "next week" in date_str:
+        return (datetime.now() + timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0), None
+    
+    # Try different date formats
+    date_formats = [
+        ("%Y-%m-%d", False),      # 2026-07-28
+        ("%d/%m/%Y", False),      # 28/07/2026
+        ("%d-%m-%Y", False),      # 28-07-2026
+        ("%d.%m.%Y", False),      # 28.07.2026
+        ("%d %B %Y", False),      # 28 July 2026
+        ("%B %d %Y", False),      # July 28 2026
+        ("%d-%b-%Y", False),      # 28-Jul-2026
+        ("%b %d %Y", False),      # Jul 28 2026
+        ("%Y%m%d", False),        # 20260728
+        ("%d/%m/%y", False),      # 28/07/26
+        ("%d-%m-%y", False),      # 28-07-26
+        ("%d.%m.%y", False),      # 28.07.26
+    ]
+    
+    # Remove ordinal indicators (st, nd, rd, th)
+    cleaned_date = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str)
+    
+    for fmt, _ in date_formats:
+        try:
+            date_obj = datetime.strptime(cleaned_date, fmt)
+            return date_obj, None
+        except ValueError:
+            continue
+    
+    # Try with abbreviated month names
+    month_map = {
+        'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+        'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+    }
+    
+    # Try pattern like "20 Aug 2026"
+    match = re.match(r'(\d{1,2})\s+([a-zA-Z]{3,})\s+(\d{4})', date_str)
+    if match:
+        day = int(match.group(1))
+        month_name = match.group(2).lower()[:3]
+        year = int(match.group(3))
+        if month_name in month_map:
+            month = month_map[month_name]
+            try:
+                date_obj = datetime(year, month, day)
+                return date_obj, None
+            except ValueError:
+                pass
+    
+    return None, "I couldn't understand the date format. Please use formats like '20/8/2026', '20-8-2026', 'today', or 'tomorrow'."
 
+def parse_time_from_string(time_str):
+    """
+    Parse time from various formats including:
+    - 2:30 PM
+    - 14:30
+    - 2 PM
+    - 2
+    - 2:30pm
+    - 1430
+    Returns (hour, minute, error_message)
+    """
+    time_str = time_str.strip().lower()
+    
+    # Handle special cases
+    if time_str in ["now", "right now", "asap"]:
+        now = datetime.now()
+        return now.hour, now.minute, None
+    elif time_str in ["noon", "midday", "12 noon"]:
+        return 12, 0, None
+    elif time_str in ["midnight", "12 midnight"]:
+        return 0, 0, None
+    
+    # Check if it's a standalone number (like "2")
+    if re.match(r'^\d{1,2}$', time_str):
+        hour = int(time_str)
+        # Validate hour
+        if hour < 0 or hour > 23:
+            return None, None, f"Invalid hour: {hour}. Please use a number between 0 and 23."
+        # If hour is less than 9, assume AM (unless it's 12)
+        if hour < 9:
+            return hour, 0, None
+        elif hour == 12:
+            return 12, 0, None
+        else:
+            return hour, 0, None
+    
+    # Try different time formats
+    time_formats = [
+        ("%I:%M %p", True),   # 2:30 PM
+        ("%I:%M%p", True),    # 2:30PM
+        ("%I %p", True),      # 2 PM
+        ("%I%p", True),       # 2PM
+        ("%H:%M", False),     # 14:30
+        ("%H%M", False),      # 1430
+        ("%H", False),        # 14
+    ]
+    
+    for fmt, has_ampm in time_formats:
+        try:
+            time_obj = datetime.strptime(time_str, fmt)
+            hour = time_obj.hour
+            minute = time_obj.minute
+            if 0 <= hour <= 23 and 0 <= minute <= 59:
+                return hour, minute, None
+        except ValueError:
+            continue
+    
+    # Try with ":" but no AM/PM
+    if ":" in time_str:
+        parts = time_str.split(":")
+        if len(parts) == 2:
+            try:
+                hour = int(parts[0])
+                minute = int(parts[1])
+                if 0 <= hour <= 23 and 0 <= minute <= 59:
+                    # If hour > 12, it's PM (24-hour format)
+                    if hour > 12:
+                        return hour, minute, None
+                    # If hour is 12, it's noon
+                    elif hour == 12:
+                        return 12, minute, None
+                    # Otherwise, it's ambiguous - assume PM for 1-8, AM for <1
+                    elif hour < 9:
+                        return hour, minute, None
+                    else:
+                        return hour, minute, None
+            except ValueError:
+                pass
+    
+    return None, None, "I couldn't understand the time format. Please use formats like '2:30 PM', '14:30', or '2 PM'."
+
+def extract_date_time_from_text(text):
+    """
+    Extract date and time from natural language text.
+    Returns (date_str, time_str, service, error_message)
+    """
+    text_lower = text.lower()
+    
+    # Default values
+    date_str = None
+    time_str = None
+    service = "Aromatherapy Massage"
+    
+    # Extract service type
+    services = {
+        "aromatherapy": "Aromatherapy Massage",
+        "deep tissue": "Deep Tissue Massage",
+        "hot stone": "Hot Stone Therapy",
+        "facial": "Hydrating Facial",
+        "swedish": "Swedish Massage",
+        "reflexology": "Reflexology",
+        "massage": "Aromatherapy Massage"
+    }
+    
+    for key, value in services.items():
+        if key in text_lower:
+            service = value
+            break
+    
+    # Extract date
+    # Try to find date patterns
+    date_patterns = [
+        r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',  # 20/8/2026 or 20-8-2026
+        r'(\d{1,2}\s+[a-zA-Z]{3,}\s+\d{4})',  # 20 Aug 2026
+        r'(\d{1,2}\s+[a-zA-Z]+\s+\d{4})',     # 20 August 2026
+        r'\b(today|tomorrow|tmr|day after tomorrow|next week)\b',
+    ]
+    
+    for pattern in date_patterns:
+        match = re.search(pattern, text_lower, re.IGNORECASE)
+        if match:
+            date_str = match.group(1) if match.groups() else match.group(0)
+            break
+    
+    # If no date found, check for "today" or "tomorrow" without regex
+    if not date_str:
+        if "today" in text_lower:
+            date_str = "today"
+        elif "tomorrow" in text_lower or "tmr" in text_lower:
+            date_str = "tomorrow"
+        elif "day after tomorrow" in text_lower:
+            date_str = "day after tomorrow"
+        elif "next week" in text_lower:
+            date_str = "next week"
+    
+    # Extract time
+    time_patterns = [
+        r'(\d{1,2}:\d{2}\s*(?:am|pm)?)',  # 2:30 PM or 14:30
+        r'(\d{1,2}\s*(?:am|pm)\s*(?:o\'clock)?)',  # 2 PM or 2pm
+        r'(\d{1,2}\s*o\'clock)',  # 2 o'clock
+        r'\b(noon|midday|midnight)\b',
+        r'(\d{1,2})\s*(?:in the)?\s*(morning|afternoon|evening|night)',
+    ]
+    
+    for pattern in time_patterns:
+        match = re.search(pattern, text_lower, re.IGNORECASE)
+        if match:
+            time_str = match.group(1) if match.groups() else match.group(0)
+            break
+    
+    # If no time found, look for a standalone number (like "2")
+    if not time_str:
+        # Look for numbers that could be hours
+        numbers = re.findall(r'\b(\d{1,2})\b', text_lower)
+        for num in numbers:
+            hour = int(num)
+            if 1 <= hour <= 12:
+                # Check if there's AM/PM context
+                if "am" in text_lower:
+                    time_str = f"{hour} AM"
+                elif "pm" in text_lower:
+                    time_str = f"{hour} PM"
+                elif "morning" in text_lower:
+                    time_str = f"{hour} AM"
+                elif "afternoon" in text_lower or "evening" in text_lower or "night" in text_lower:
+                    time_str = f"{hour} PM"
+                elif hour < 9:
+                    time_str = f"{hour} AM"
+                else:
+                    time_str = f"{hour} PM"
+                break
+    
+    return date_str, time_str, service, None
+
+def validate_booking_datetime(booking_datetime, duration_minutes=60):
+    """
+    Validate booking datetime with comprehensive checks.
+    Returns (is_valid, error_message)
+    """
+    now = datetime.now()
+    today_date = now.date()
+    booking_date = booking_datetime.date()
+    
+    # Check if date is in the past
+    if booking_date < today_date:
+        return False, f"❌ I'm sorry, but {booking_datetime.strftime('%A, %B %d, %Y')} is in the past. Please select a future date for your spa appointment."
+    
+    # Check if date is today but time is in the past
+    if booking_date == today_date and booking_datetime < now:
+        return False, f"❌ I'm sorry, but {booking_datetime.strftime('%I:%M %p')} has already passed today. Please select a later time."
+    
+    # Check if booking is within operating hours (9 AM - 10 PM)
+    if booking_datetime.hour < 9:
+        return False, f"❌ I'm sorry, but our spa opens at 9:00 AM. {booking_datetime.strftime('%I:%M %p')} is too early. <br><br>💡 <i>Would you like me to book you for 9:00 AM instead?</i>"
+    elif booking_datetime.hour >= 22:
+        return False, f"❌ I'm sorry, but our spa closes at 10:00 PM. {booking_datetime.strftime('%I:%M %p')} is too late. <br><br>💡 <i>The latest appointment we can take is 9:30 PM.</i>"
+    elif booking_datetime.hour == 22 and booking_datetime.minute > 0:
+        return False, f"❌ I'm sorry, but our spa closes at 10:00 PM. {booking_datetime.strftime('%I:%M %p')} is too late. <br><br>💡 <i>The latest appointment we can take is 9:30 PM.</i>"
+    
+    # Check if booking is on a Sunday (optional - adjust as needed)
+    # if booking_datetime.weekday() == 6:  # Sunday
+    #     return False, "❌ I'm sorry, but our spa is closed on Sundays. Please select another day."
+    
+    return True, None
+
+
+# ==========================================
+# 4. Spa Booking Validation System
+# ==========================================
 def is_spa_slot_available(booking_datetime, duration_minutes=60, exclude_booking=None):
     """
     Check if a spa time slot is available.
     Returns (is_available, conflicting_bookings)
     """
+    # Check if booking is in the past
     if booking_datetime < datetime.now():
         return False, "Past Booking"
     
+    # Check if booking is within operating hours (9 AM - 10 PM)
     if booking_datetime.hour < 9 or booking_datetime.hour >= 22:
         return False, "Outside Operating Hours"
     
+    # Check for conflicts with existing bookings
     booking_end = booking_datetime + timedelta(minutes=duration_minutes)
     conflicting_bookings = []
     
     for slot, booking in st.session_state.spa_bookings.items():
+        # Skip if this is the booking being updated
         if exclude_booking and slot == exclude_booking:
             continue
             
         existing_start = datetime.strptime(slot, "%Y-%m-%d %H:%M")
         existing_end = existing_start + timedelta(minutes=booking.get("duration", 60))
         
+        # Check for overlap
         if (booking_datetime < existing_end and booking_end > existing_start):
             conflicting_bookings.append({
                 "time": slot,
@@ -387,9 +503,11 @@ def book_spa_slot(guest_name, service, booking_datetime, duration_minutes=60):
     Book a spa slot
     Returns (success, message)
     """
+    # Validate date is not in past
     if booking_datetime < datetime.now():
         return False, "❌ Booking date and time cannot be in the past. Please select a future date and time."
     
+    # Check if slot is available
     is_available, conflict = is_spa_slot_available(booking_datetime, duration_minutes)
     
     if not is_available:
@@ -402,6 +520,7 @@ def book_spa_slot(guest_name, service, booking_datetime, duration_minutes=60):
         else:
             return False, "❌ This time slot is not available. Please choose another time."
     
+    # Make the booking
     slot_key = booking_datetime.strftime("%Y-%m-%d %H:%M")
     st.session_state.spa_bookings[slot_key] = {
         "guest_name": guest_name,
@@ -413,7 +532,7 @@ def book_spa_slot(guest_name, service, booking_datetime, duration_minutes=60):
 
 
 # ==========================================
-# 4. Real-Time Weather API Integration with Attractions
+# 5. Real-Time Weather API Integration with Attractions
 # ==========================================
 def get_realtime_weather():
     """Fetches real-time weather using Open-Meteo API with WMO translation and attraction suggestions."""
@@ -579,7 +698,7 @@ def get_attraction_suggestions(weather_type, temperature):
 
 
 # ==========================================
-# 5. Internal Call & VIP Pass Card Generators
+# 6. Internal Call & VIP Pass Card Generators
 # ==========================================
 def render_internal_call_card():
     """Generates the hotel direct internal call card component."""
@@ -641,7 +760,7 @@ def render_spa_vip_pass(booking_details):
 
 
 # ==========================================
-# 6. ML Classifier & Response Pipeline
+# 7. ML Classifier & Response Pipeline
 # ==========================================
 LUXURY_RESPONSES = {
     "greet": "Greetings! It is my absolute pleasure to welcome you to The Grand Apex Resort & Spa. How may I be of service to you today?",
@@ -729,7 +848,7 @@ Located on Floor 5, our Spa offers signature aromatherapy, hot stone therapy, an
     "ask_spa_booking": """
 📅 <strong>Spa Reservation Request</strong><br><br>
 I would be delighted to arrange this for you, Mr. Vance! To secure your preferred time, please specify:<br>
-1. <strong>Your preferred date & time</strong> (e.g., Today at 15:00 PM or 2026-07-28 at 14:30)<br>
+1. <strong>Your preferred date & time</strong> (e.g., Today at 15:00 PM or 20/8/2026 at 14:30)<br>
 2. <strong>Service type</strong> (e.g., Aromatherapy Massage, Deep Tissue, Hot Stone, Facial)<br><br>
 <i>💡 I'll check availability and confirm your booking!</i><br><br>
 Alternatively, you may dial <strong>Ext '802'</strong> to speak directly with our Spa Receptionist for immediate confirmation.
@@ -843,222 +962,120 @@ model = load_and_train_model()
 
 def process_spa_booking(user_input):
     """
-    Process spa booking request with validation
+    Process spa booking request with enhanced date/time validation
     """
-    input_lower = user_input.lower()
-    
     # --- CHECK: If this is a weather query, handle it immediately ---
     weather_keywords = ["weather", "temperature", "forecast", "rain", "sunny", "cloudy", "degrees", "°c", "°f"]
-    if any(keyword in input_lower for keyword in weather_keywords):
+    if any(keyword in user_input.lower() for keyword in weather_keywords):
         weather_res = get_realtime_weather()
         return weather_res["formatted_text"]
     
-    # Default values
-    date_str = None
-    time_str = None
-    service = "Aromatherapy Massage"  # Default service
-    duration = 60
+    # Extract date, time, and service from user input
+    date_str, time_str, service, error = extract_date_time_from_text(user_input)
     
-    # Extract service type
-    services = {
-        "aromatherapy": "Aromatherapy Massage",
-        "deep tissue": "Deep Tissue Massage",
-        "hot stone": "Hot Stone Therapy",
-        "facial": "Hydrating Facial",
-        "swedish": "Swedish Massage",
-        "reflexology": "Reflexology"
-    }
-    
-    for key, value in services.items():
-        if key in input_lower:
-            service = value
-            break
-    
-    # Extract time - improved to handle standalone numbers
-    time_patterns = [
-        r'(\d{1,2}):(\d{2})\s*(am|pm)?',  # 14:30 or 2:30pm
-        r'(\d{1,2})\s*(am|pm)\s*(?:o\'clock)?',  # 2pm or 3am
-        r'(\d{1,2})\s*o\'clock',  # 2 o'clock
-        r'(\d{1,2})\s*(?:in the)?\s*(morning|afternoon|evening|night)',  # 2 in the afternoon
-        r'^(\d{1,2})$',  # Standalone number like "12"
-    ]
-    
-    for pattern in time_patterns:
-        match = re.search(pattern, input_lower, re.IGNORECASE)
-        if match:
-            groups = match.groups()
-            
-            if len(groups) == 3 and groups[0] and groups[1]:  # HH:MM AM/PM
-                hour = int(groups[0])
-                minute = int(groups[1])
-                ampm = groups[2].lower() if groups[2] else None
-                
-                if ampm:
-                    if ampm == 'pm' and hour < 12:
-                        hour += 12
-                    elif ampm == 'am' and hour == 12:
-                        hour = 0
-                else:
-                    if hour < 9:
-                        pass
-                    elif hour == 12:
-                        hour = 12
-                    else:
-                        if hour < 9:
-                            hour = hour
-                        else:
-                            hour = hour
-                
-                time_str = f"{hour:02d}:{minute:02d}"
-                
-            elif len(groups) == 2:  # HH AM/PM or HH o'clock
-                hour = int(groups[0])
-                if len(groups) > 1 and groups[1]:
-                    ampm = groups[1].lower() if groups[1] else None
-                    if ampm in ['am', 'pm']:
-                        if ampm == 'pm' and hour < 12:
-                            hour += 12
-                        elif ampm == 'am' and hour == 12:
-                            hour = 0
-                    else:
-                        if hour < 9:
-                            hour = hour
-                        else:
-                            hour = hour
-                else:
-                    if hour < 9:
-                        hour = hour
-                    else:
-                        hour = hour
-                
-                time_str = f"{hour:02d}:00"
-            
-            elif len(groups) == 1 and groups[0]:  # Standalone number
-                hour = int(groups[0])
-                if "am" in input_lower:
-                    if hour == 12:
-                        hour = 0
-                elif "pm" in input_lower:
-                    if hour < 12:
-                        hour += 12
-                else:
-                    if hour < 9:
-                        pass
-                    elif hour == 12:
-                        hour = 12
-                    else:
-                        if hour < 6:
-                            hour = hour
-                        else:
-                            hour = hour
-                
-                time_str = f"{hour:02d}:00"
-            
-            break
-    
-    # Extract date
-    date_patterns = [
-        r'(\d{4})-(\d{1,2})-(\d{1,2})',  # 2026-07-28
-        r'(\d{1,2})/(\d{1,2})/(\d{4})',  # 28/07/2026
-        r'(\d{1,2})-(\d{1,2})-(\d{4})',  # 28-07-2026
-        r'today',
-        r'tomorrow',
-        r'tmr',
-        r'day after tomorrow',
-        r'next week',
-        r'(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+(\d{4})',  # 28 Jul 2026
-    ]
-    
-    for pattern in date_patterns:
-        if isinstance(pattern, str):
-            if pattern in input_lower:
-                if pattern == 'today':
-                    date_str = datetime.now().strftime("%Y-%m-%d")
-                elif pattern in ['tomorrow', 'tmr']:
-                    date_str = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
-                elif pattern == 'day after tomorrow':
-                    date_str = (datetime.now() + timedelta(days=2)).strftime("%Y-%m-%d")
-                elif pattern == 'next week':
-                    date_str = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
-                break
-        else:
-            match = re.search(pattern, input_lower, re.IGNORECASE)
-            if match:
-                if len(match.groups()) == 3:
-                    if len(match.group(1)) == 4:
-                        year, month, day = match.groups()
-                    else:
-                        day, month, year = match.groups()
-                    if month.isalpha():
-                        month_map = {
-                            'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
-                            'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
-                        }
-                        month = month_map.get(month.lower(), int(month))
-                    else:
-                        month = int(month)
-                    date_str = f"{int(year):04d}-{int(month):02d}-{int(day):02d}"
-                break
-    
-    # If date and time are not provided, ask for more details
-    if not date_str or not time_str:
-        response = "📅 I need a bit more information to book your spa appointment:<br><br>"
-        if not date_str:
-            response += "• <strong>Date</strong>: Please tell me the date (e.g., 'today', 'tomorrow', or '2026-07-28')<br>"
-        if not time_str:
-            response += "• <strong>Time</strong>: Please tell me the time (e.g., '2:30 PM', '14:30', or '2' for 2:00 PM)<br>"
-        response += "<br>💆 <strong>Service selected</strong>: " + service
-        response += "<br><br>Please provide the missing information, and I'll check availability for you!"
-        
-        if not time_str:
-            response += "<br><br>💡 <i>Tip: If you just say '2', I'll assume 2:00 PM. To book in the morning, say '9 AM'.</i>"
-        return response
-    
-    # Check if time is a standalone number and give a friendly reminder
-    if time_str and re.match(r'^\d{1,2}$', time_str.strip()):
-        hour = int(time_str.strip())
-        if hour < 9:
-            response = f"💡 <i>I see you said '{hour}'. Since our spa opens at 9:00 AM, I've assumed <strong>{hour}:00 AM</strong>.</i><br><br>"
-        else:
-            response = f"💡 <i>I see you said '{hour}'. I've assumed <strong>{hour}:00 PM</strong> (afternoon).</i><br><br>"
-    else:
-        response = ""
-    
-    # Parse the booking datetime
-    booking_datetime, error = parse_booking_datetime(date_str, time_str)
-    
+    # If there's an error in extraction
     if error:
-        return response + f"❌ {error}"
+        return f"❌ {error}"
     
+    # Check if date was provided
+    if not date_str:
+        return "📅 I need a date for your spa booking. Please tell me the date (e.g., '20/8/2026', 'today', or 'tomorrow') and I'll check availability!"
+    
+    # Check if time was provided
+    if not time_str:
+        return "🕐 I need a time for your spa booking. Please tell me the time (e.g., '2:30 PM', '14:30', or '2 PM') and I'll check availability!"
+    
+    # Parse the date
+    date_obj, date_error = parse_date_from_string(date_str)
+    if date_error:
+        return f"❌ {date_error}"
+    
+    # Parse the time
+    hour, minute, time_error = parse_time_from_string(time_str)
+    if time_error:
+        return f"❌ {time_error}"
+    
+    # Combine date and time
+    booking_datetime = date_obj.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    
+    # --- DATE VALIDATION ---
     # Check if booking is in the past
-    if booking_datetime < datetime.now():
-        return response + f"❌ I'm sorry, but {booking_datetime.strftime('%A, %B %d at %I:%M %p')} is in the past. Please select a future date and time for your spa appointment."
+    now = datetime.now()
+    today_date = now.date()
+    booking_date = booking_datetime.date()
+    
+    # Show a friendly message if date is in the past
+    if booking_date < today_date:
+        return f"""❌ <strong>Invalid Date</strong><br><br>
+I'm sorry, but <strong>{booking_datetime.strftime('%A, %B %d, %Y')}</strong> is in the past.<br><br>
+📅 <strong>Today is:</strong> {now.strftime('%A, %B %d, %Y')}<br><br>
+💡 <i>Please select a future date for your spa appointment. You can say something like:</i><br>
+• "Book spa for tomorrow at 2 PM"<br>
+• "Book spa for 20/8/2026 at 14:30"<br>
+• "Book spa for next week Friday at 3 PM"
+"""
+    
+    # Check if date is today but time is in the past
+    if booking_date == today_date and booking_datetime < now:
+        return f"""❌ <strong>Time Has Passed</strong><br><br>
+I'm sorry, but <strong>{booking_datetime.strftime('%I:%M %p')}</strong> has already passed today.<br><br>
+⏰ <strong>Current time:</strong> {now.strftime('%I:%M %p')}<br><br>
+💡 <i>Please select a later time today or a future date. You can say:</i><br>
+• "Book spa for today at 3 PM"<br>
+• "Book spa for tomorrow at 10 AM"
+"""
     
     # Check if booking is within operating hours (9 AM - 10 PM)
     if booking_datetime.hour < 9:
-        return response + f"❌ I'm sorry, but our spa opens at 9:00 AM. {booking_datetime.strftime('%I:%M %p')} is too early. <br><br>💡 <i>Would you like me to book you for 9:00 AM instead?</i>"
-    elif booking_datetime.hour >= 22:
-        return response + f"❌ I'm sorry, but our spa closes at 10:00 PM. {booking_datetime.strftime('%I:%M %p')} is too late. <br><br>💡 <i>The latest appointment we can take is 9:30 PM.</i>"
+        return f"""❌ <strong>Too Early</strong><br><br>
+I'm sorry, but our spa opens at <strong>9:00 AM</strong>. {booking_datetime.strftime('%I:%M %p')} is too early.<br><br>
+🕒 <strong>Operating Hours:</strong> 9:00 AM - 10:00 PM<br><br>
+💡 <i>Would you like me to book you for 9:00 AM instead? Or you can say:</i><br>
+• "Book spa for {booking_datetime.strftime('%d/%m/%Y')} at 9 AM"<br>
+• "Book spa for {booking_datetime.strftime('%d/%m/%Y')} at 2 PM"
+"""
+    elif booking_datetime.hour >= 22 or (booking_datetime.hour == 22 and booking_datetime.minute > 0):
+        return f"""❌ <strong>Too Late</strong><br><br>
+I'm sorry, but our spa closes at <strong>10:00 PM</strong>. {booking_datetime.strftime('%I:%M %p')} is too late.<br><br>
+🕒 <strong>Operating Hours:</strong> 9:00 AM - 10:00 PM<br><br>
+💡 <i>The latest appointment we can take is 9:30 PM. You can say:</i><br>
+• "Book spa for {booking_datetime.strftime('%d/%m/%Y')} at 9 PM"<br>
+• "Book spa for {booking_datetime.strftime('%d/%m/%Y')} at 8 PM"
+"""
     
-    # Check if the time slot is available
-    is_available, conflict = is_spa_slot_available(booking_datetime, duration)
+    # --- TIME SLOT AVAILABILITY CHECK ---
+    is_available, conflict = is_spa_slot_available(booking_datetime, 60)  # Default 60 minutes
     
     if not is_available:
-        if conflict == "Outside Operating Hours":
-            return response + f"❌ I'm sorry, but our spa operates from 9:00 AM to 10:00 PM. Please select a time within these hours. {booking_datetime.strftime('%I:%M %p')} is not available."
+        if conflict == "Past Booking":
+            return f"""❌ <strong>Invalid Date</strong><br><br>
+I'm sorry, but {booking_datetime.strftime('%A, %B %d, %Y at %I:%M %p')} is in the past.<br><br>
+💡 <i>Please select a future date and time for your spa appointment.</i>
+"""
+        elif conflict == "Outside Operating Hours":
+            return f"""❌ <strong>Outside Operating Hours</strong><br><br>
+I'm sorry, but our spa operates from <strong>9:00 AM to 10:00 PM</strong>.<br><br>
+🕒 {booking_datetime.strftime('%I:%M %p')} is not available.<br><br>
+💡 <i>Please select a time within our operating hours.</i>
+"""
         elif isinstance(conflict, list):
-            return response + format_conflict_message(conflict)
+            return format_conflict_message(conflict)
         else:
-            return response + f"❌ I'm sorry, but the time slot {booking_datetime.strftime('%A, %B %d at %I:%M %p')} is not available. Please choose a different time."
+            return f"""❌ <strong>Time Slot Unavailable</strong><br><br>
+I'm sorry, but the time slot <strong>{booking_datetime.strftime('%A, %B %d at %I:%M %p')}</strong> is not available.<br><br>
+💡 <i>Please choose a different time. You can say:</i><br>
+• "Book spa for {booking_datetime.strftime('%d/%m/%Y')} at 3 PM"<br>
+• "Book spa for {booking_datetime.strftime('%d/%m/%Y')} at 5 PM"
+"""
     
-    # If available, confirm the booking
-    success, message = book_spa_slot("Mr. Alexander Vance", service, booking_datetime, duration)
+    # --- CONFIRM BOOKING ---
+    success, message = book_spa_slot("Mr. Alexander Vance", service, booking_datetime, 60)
     
     if success:
         st.session_state.latest_spa_booking = f"{booking_datetime.strftime('%b %d at %I:%M %p')} - {service}"
-        return response + render_spa_vip_pass(f"{booking_datetime.strftime('%A, %B %d at %I:%M %p')}<br>💆 {service}")
+        return message
     else:
-        return response + message
+        return message
 
 def get_bot_response(user_input):
     # Check and correct spelling
@@ -1074,7 +1091,7 @@ def get_bot_response(user_input):
     if not cleaned_input or not cleaned_input.strip():
         return "Greetings! How may I assist your stay at The Grand Apex today?"
 
-    # --- NEW: Check if this is a weather query FIRST ---
+    # --- Check if this is a weather query FIRST ---
     weather_keywords = [
         "weather", "temperature", "forecast", "rain", "sunny", "cloudy", 
         "hot", "cold", "warm", "humid", "degrees", "°c", "°f",
@@ -1082,10 +1099,9 @@ def get_bot_response(user_input):
         "weather today", "weather tomorrow", "how is the weather"
     ]
     
-    # Check if user is asking about weather
     is_weather_query = any(keyword in cleaned_input.lower() for keyword in weather_keywords)
     
-    # If it's a weather query, handle it immediately (don't go to spa booking)
+    # If it's a weather query, handle it immediately
     if is_weather_query:
         weather_res = get_realtime_weather()
         return correction_note + weather_res["formatted_text"]
@@ -1109,11 +1125,6 @@ def get_bot_response(user_input):
             )
         
         if predicted_tag in ["ask_spa", "ask_spa_booking"]:
-            # Double-check: Is this actually a weather query but misclassified?
-            if is_weather_query:
-                weather_res = get_realtime_weather()
-                return correction_note + weather_res["formatted_text"]
-            
             st.session_state.awaiting_spa_booking = True
             return correction_note + LUXURY_RESPONSES.get(predicted_tag)
 
@@ -1126,12 +1137,12 @@ def get_bot_response(user_input):
 
         return correction_note + LUXURY_RESPONSES.get(predicted_tag, "Thank you. Our Concierge Desk is entirely at your service.")
         
-    except Exception:
+    except Exception as e:
         return "I am at your service. Please feel free to ask about our room amenities, dining, or guest services."
 
 
 # ==========================================
-# 7. Styling Injection (Bright Luxury Theme)
+# 8. Styling Injection (Bright Luxury Theme)
 # ==========================================
 st.markdown("""
 <style>
@@ -1353,7 +1364,7 @@ st.markdown("""
 
 
 # ==========================================
-# 8. PAGE 1: Luxury Dashboard & Banner Slider
+# 9. PAGE 1: Luxury Dashboard & Banner Slider
 # ==========================================
 if st.session_state.page == "dashboard":
     weather_data = get_realtime_weather()
@@ -1471,7 +1482,7 @@ if st.session_state.page == "dashboard":
 
 
 # ==========================================
-# 9. PAGE 2: Left/Right Chat Interface
+# 10. PAGE 2: Left/Right Chat Interface
 # ==========================================
 elif st.session_state.page == "chat":
     top_c1, top_c2 = st.columns([4, 1])
