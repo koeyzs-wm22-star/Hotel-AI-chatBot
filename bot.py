@@ -995,10 +995,10 @@ def process_spa_booking(user_input):
         return f"""❌ <strong>Invalid Date</strong><br><br>
 I'm sorry, but <strong>{booking_datetime.strftime('%A, %B %d, %Y')}</strong> is in the past.<br><br>
 📅 <strong>Today is:</strong> {now.strftime('%A, %B %d, %Y')}<br><br>
-💡 <i>Please select a future date for your spa appointment. You can say something like:</i><br>
-• "Book spa for tomorrow at 2 PM"<br>
-• "Book spa for 20/8/2026 at 14:30"<br>
-• "Book spa for next week Friday at 3 PM"
+💡 <i>Please select a future date for your spa appointment. You can simply type the corrected date and time, like:</i><br>
+• "tomorrow at 2 PM"<br>
+• "20/8/2026 at 14:30"<br>
+• "next week Friday at 3 PM"
 """
     
     # Check if date is today but time is in the past
@@ -1006,9 +1006,9 @@ I'm sorry, but <strong>{booking_datetime.strftime('%A, %B %d, %Y')}</strong> is 
         return f"""❌ <strong>Time Has Passed</strong><br><br>
 I'm sorry, but <strong>{booking_datetime.strftime('%I:%M %p')}</strong> has already passed today.<br><br>
 ⏰ <strong>Current time:</strong> {now.strftime('%I:%M %p')}<br><br>
-💡 <i>Please select a later time today or a future date. You can say:</i><br>
-• "Book spa for today at 3 PM"<br>
-• "Book spa for tomorrow at 10 AM"
+💡 <i>Please select a later time today or a future date. Just type the corrected time, like:</i><br>
+• "3 PM"<br>
+• "tomorrow at 10 AM"
 """
     
     # Check if booking is within operating hours (9 AM - 10 PM)
@@ -1016,17 +1016,17 @@ I'm sorry, but <strong>{booking_datetime.strftime('%I:%M %p')}</strong> has alre
         return f"""❌ <strong>Too Early</strong><br><br>
 I'm sorry, but our spa opens at <strong>9:00 AM</strong>. {booking_datetime.strftime('%I:%M %p')} is too early.<br><br>
 🕒 <strong>Operating Hours:</strong> 9:00 AM - 10:00 PM<br><br>
-💡 <i>Would you like me to book you for 9:00 AM instead? Or you can say:</i><br>
-• "Book spa for {booking_datetime.strftime('%d/%m/%Y')} at 9 AM"<br>
-• "Book spa for {booking_datetime.strftime('%d/%m/%Y')} at 2 PM"
+💡 <i>Please try a later time. Just type the corrected time, like:</i><br>
+• "9 AM"<br>
+• "2 PM"
 """
     elif booking_datetime.hour >= 22 or (booking_datetime.hour == 22 and booking_datetime.minute > 0):
         return f"""❌ <strong>Too Late</strong><br><br>
 I'm sorry, but our spa closes at <strong>10:00 PM</strong>. {booking_datetime.strftime('%I:%M %p')} is too late.<br><br>
 🕒 <strong>Operating Hours:</strong> 9:00 AM - 10:00 PM<br><br>
-💡 <i>The latest appointment we can take is 9:30 PM. You can say:</i><br>
-• "Book spa for {booking_datetime.strftime('%d/%m/%Y')} at 9 PM"<br>
-• "Book spa for {booking_datetime.strftime('%d/%m/%Y')} at 8 PM"
+💡 <i>Please try an earlier time. Just type the corrected time, like:</i><br>
+• "9 PM"<br>
+• "7 PM"
 """
     
     # --- TIME SLOT AVAILABILITY CHECK ---
@@ -1036,7 +1036,8 @@ I'm sorry, but our spa closes at <strong>10:00 PM</strong>. {booking_datetime.st
         if conflict == "Past Booking":
             return f"""❌ <strong>Invalid Date</strong><br><br>
 I'm sorry, but {booking_datetime.strftime('%A, %B %d, %Y at %I:%M %p')} is in the past.<br><br>
-💡 <i>Please select a future date and time for your spa appointment.</i>
+💡 <i>Please select a future date and time. Just type the corrected date and time, like:</i><br>
+• "tomorrow at 2 PM"
 """
         elif conflict == "Outside Operating Hours":
             return f"""❌ <strong>Outside Operating Hours</strong><br><br>
@@ -1049,9 +1050,9 @@ I'm sorry, but our spa operates from <strong>9:00 AM to 10:00 PM</strong>.<br><b
         else:
             return f"""❌ <strong>Time Slot Unavailable</strong><br><br>
 I'm sorry, but the time slot <strong>{booking_datetime.strftime('%A, %B %d at %I:%M %p')}</strong> is not available.<br><br>
-💡 <i>Please choose a different time. You can say:</i><br>
-• "Book spa for {booking_datetime.strftime('%d/%m/%Y')} at 3 PM"<br>
-• "Book spa for {booking_datetime.strftime('%d/%m/%Y')} at 5 PM"
+💡 <i>Please choose a different time. Just type the new time, like:</i><br>
+• "3 PM"<br>
+• "5 PM"
 """
     
     # --- CONFIRM BOOKING ---
@@ -1092,7 +1093,7 @@ def get_bot_response(user_input):
         weather_res = get_realtime_weather()
         return correction_note + weather_res["formatted_text"]
 
-    # --- NEW: Check if this looks like a spa booking (has date/time) ---
+    # --- Check if this looks like a spa booking (has date/time) ---
     # Check for date patterns
     date_patterns = [
         r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}',  # 20/8/2026 or 20-8-2026
@@ -1114,7 +1115,7 @@ def get_bot_response(user_input):
     # If input has date and time, it's likely a spa booking
     is_spa_booking_likely = has_date and has_time
     
-    # --- NEW: Check if this is a spa booking request ---
+    # --- Check if this is a spa booking request ---
     spa_booking_keywords = [
         "book spa", "spa booking", "reserve spa", "appointment", 
         "massage", "facial", "hot stone", "aromatherapy",
@@ -1123,15 +1124,24 @@ def get_bot_response(user_input):
     
     is_spa_booking_request = any(keyword in cleaned_input.lower() for keyword in spa_booking_keywords)
     
-    # --- NEW: Force spa booking context if it looks like a booking ---
-    if is_spa_booking_request or is_spa_booking_likely:
-        # If the user is in the middle of a spa booking conversation or just started one
-        return process_spa_booking(user_input)
+    # --- MAIN LOGIC: If in spa booking context OR it's a booking request OR has date/time ---
+    if st.session_state.awaiting_spa_booking or is_spa_booking_request or is_spa_booking_likely:
+        result = process_spa_booking(user_input)
+        # Keep the context active if validation failed, so user can try again
+        if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result:
+            st.session_state.awaiting_spa_booking = True
+        else:
+            st.session_state.awaiting_spa_booking = False
+        return result
 
     # Spa Booking context handling (for ongoing conversations)
     if st.session_state.awaiting_spa_booking:
         st.session_state.awaiting_spa_booking = False
-        return process_spa_booking(user_input)
+        result = process_spa_booking(user_input)
+        # Keep context active if validation failed
+        if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result:
+            st.session_state.awaiting_spa_booking = True
+        return result
         
     try:
         probs = model.predict_proba([cleaned_input])[0]
