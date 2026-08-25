@@ -841,7 +841,7 @@ Please specify what you'd like to extend:
 
 
 # ==========================================
-# 5. Real-Time Weather API Integration with Attractions (UPDATED WITH LINKS)
+# 5. Real-Time Weather API Integration with Attractions (UPDATED WITH SEPARATE RESPONSES)
 # ==========================================
 def get_realtime_weather():
     """Fetches real-time weather using Open-Meteo API with WMO translation and attraction suggestions."""
@@ -887,24 +887,30 @@ def get_realtime_weather():
             # Get attraction suggestions with links
             attraction_suggestions = get_attraction_suggestions_with_links(weather_type, curr_temp)
 
+            # First response: Weather only
+            weather_response = (
+                f"🌤️ <strong>Grand Apex Advisory Weather Service</strong><br><br>"
+                f"It is currently <strong>{curr_temp}°C</strong> with <strong>{weather_condition}</strong> over the resort grounds.<br><br>"
+                f"<strong>3-Day Horizon:</strong><br>"
+                f"• <strong>Today ({dates[0]})</strong>: {min_temps[0]}°C to {max_temps[0]}°C<br>"
+                f"• <strong>Tomorrow ({dates[1]})</strong>: {min_temps[1]}°C to {max_temps[1]}°C<br>"
+                f"• <strong>Day After ({dates[2]})</strong>: {min_temps[2]}°C to {max_temps[2]}°C"
+            )
+
+            # Second response: Attraction recommendations with links
+            attraction_response = f"""
+<strong>🏙️ Based on today's weather, here are my recommendations:</strong><br><br>
+{attraction_suggestions}<br>
+🌂 <i>Should you wish to step out for sightseeing, luxury umbrellas and chauffeur-driven limousines are available at the Concierge Desk.</i>
+"""
+
             return {
                 "success": True,
                 "temp": curr_temp,
                 "condition": weather_condition,
                 "weather_type": weather_type,
-                "weather_text": (
-                    f"🌤️ <strong>Grand Apex Advisory Weather Service</strong><br><br>"
-                    f"It is currently <strong>{curr_temp}°C</strong> with <strong>{weather_condition}</strong> over the resort grounds.<br><br>"
-                    f"<strong>3-Day Horizon:</strong><br>"
-                    f"• <strong>Today ({dates[0]})</strong>: {min_temps[0]}°C to {max_temps[0]}°C<br>"
-                    f"• <strong>Tomorrow ({dates[1]})</strong>: {min_temps[1]}°C to {max_temps[1]}°C<br>"
-                    f"• <strong>Day After ({dates[2]})</strong>: {min_temps[2]}°C to {max_temps[2]}°C<br>"
-                ),
-                "attraction_text": f"""
-<br><strong>🏙️ Based on today's weather, here are my recommendations:</strong><br><br>
-{attraction_suggestions}<br>
-🌂 <i>Should you wish to step out for sightseeing, luxury umbrellas and chauffeur-driven limousines are available at the Concierge Desk.</i>
-"""
+                "weather_response": weather_response,
+                "attraction_response": attraction_response
             }
         else:
             return {
@@ -912,11 +918,8 @@ def get_realtime_weather():
                 "temp": 28,
                 "condition": "☀️ Sunny & Warm",
                 "weather_type": "sunny",
-                "weather_text": (
-                    "☀️ The weather around Grand Apex is delightfully warm (28°C). "
-                    "Perfect day to explore the city!"
-                ),
-                "attraction_text": get_attraction_suggestions_with_links("sunny", 28)
+                "weather_response": "☀️ The weather around Grand Apex is delightfully warm (28°C). Perfect day to explore the city!",
+                "attraction_response": get_attraction_suggestions_with_links("sunny", 28)
             }
     except requests.exceptions.Timeout:
         return {
@@ -924,14 +927,14 @@ def get_realtime_weather():
             "temp": 32,
             "condition": "☀️ Sunny & Warm",
             "weather_type": "sunny",
-            "weather_text": (
+            "weather_response": (
                 "☀️ <strong>Kuala Lumpur Weather Update</strong><br><br>"
                 "Kuala Lumpur is experiencing its typical warm tropical weather today.<br><br>"
                 "🌡️ <strong>Current Weather:</strong><br>"
                 "• Temperature: ~32°C (89°F)<br>"
-                "• Conditions: Warm and humid<br>"
+                "• Conditions: Warm and humid"
             ),
-            "attraction_text": get_attraction_suggestions_with_links("sunny", 32)
+            "attraction_response": get_attraction_suggestions_with_links("sunny", 32)
         }
     except Exception:
         return {
@@ -939,10 +942,8 @@ def get_realtime_weather():
             "temp": 28,
             "condition": "☀️ Sunny & Clear",
             "weather_type": "sunny",
-            "weather_text": (
-                "☀️ Weather forecast updated: Mild and suitable for local exploration."
-            ),
-            "attraction_text": get_attraction_suggestions_with_links("sunny", 28)
+            "weather_response": "☀️ Weather forecast updated: Mild and suitable for local exploration.",
+            "attraction_response": get_attraction_suggestions_with_links("sunny", 28)
         }
 
 def get_attraction_suggestions_with_links(weather_type, temperature):
@@ -1350,7 +1351,7 @@ def process_spa_booking(user_input):
     weather_keywords = ["weather", "temperature", "forecast", "rain", "sunny", "cloudy", "degrees", "°c", "°f"]
     if any(keyword in user_input.lower() for keyword in weather_keywords):
         weather_res = get_realtime_weather()
-        return weather_res["weather_text"] + weather_res["attraction_text"]
+        return weather_res["weather_response"] + weather_res["attraction_response"]
     
     # Extract date, time, and service from user input
     date_str, time_str, service, error = extract_date_time_from_text(user_input)
@@ -1544,11 +1545,11 @@ def get_bot_response(user_input):
     
     is_weather_query = any(keyword in cleaned_input.lower() for keyword in weather_keywords)
     
-    # If it's a weather query, handle it immediately with TWO responses
+    # If it's a weather query, handle it with TWO SEPARATE RESPONSES
     if is_weather_query:
         weather_res = get_realtime_weather()
-        # Send weather first, then attractions as separate message
-        return correction_note + weather_res["weather_text"] + weather_res["attraction_text"]
+        # Return weather response and attraction response as TWO separate messages
+        return correction_note + weather_res["weather_response"] + "|||" + weather_res["attraction_response"]
 
     # --- Check if this is a EXTEND BOOKING request ---
     extend_keywords = [
@@ -1715,7 +1716,7 @@ def get_bot_response(user_input):
 
         if predicted_tag == "ask_weather":
             weather_res = get_realtime_weather()
-            return correction_note + weather_res["weather_text"] + weather_res["attraction_text"]
+            return correction_note + weather_res["weather_response"] + "|||" + weather_res["attraction_response"]
 
         if predicted_tag == "internal_call":
             return correction_note + render_internal_call_card()
@@ -2156,10 +2157,28 @@ elif st.session_state.page == "chat":
             
             # Generate & Save Response
             response_text = get_bot_response(user_prompt)
-            st.session_state.messages.append({
-                "role": "assistant", 
-                "content": response_text,
-                "time": current_time
-            })
+            
+            # Check if response has split marker for weather
+            if "|||" in response_text:
+                weather_part, attraction_part = response_text.split("|||", 1)
+                # Send first response (weather)
+                st.session_state.messages.append({
+                    "role": "assistant", 
+                    "content": weather_part,
+                    "time": current_time
+                })
+                # Send second response (attractions)
+                st.session_state.messages.append({
+                    "role": "assistant", 
+                    "content": attraction_part,
+                    "time": current_time
+                })
+            else:
+                # Normal single response
+                st.session_state.messages.append({
+                    "role": "assistant", 
+                    "content": response_text,
+                    "time": current_time
+                })
             
             st.rerun()
