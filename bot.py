@@ -614,7 +614,7 @@ def cancel_spa_booking(time_str, guest_name="Mr. Alexander Vance"):
 
 
 # ==========================================
-# 4.6. Extend Booking Function (DIFFERENTIATED)
+# 4.6. Extend Booking Function (FIXED)
 # ==========================================
 def extend_room_stay(extra_days, guest_name="Mr. Alexander Vance"):
     """
@@ -709,26 +709,75 @@ def extend_spa_booking(time_str, new_date_str, guest_name="Mr. Alexander Vance")
 
 def process_extend_booking(user_input):
     """
-    Process booking extension request
+    Process booking extension request - FIXED VERSION
     """
-    # Check if it's a room extension
-    room_keywords = ["room", "stay", "check-out", "checkout", "住宿", "房间", "退房", "hotel"]
+    # --- Check if it's a room extension ---
+    room_keywords = [
+        "room", "stay", "check-out", "checkout", "住宿", "房间", "退房", 
+        "hotel", "suite", "penthouse", "room booking", "stay booking"
+    ]
     is_room_extend = any(keyword in user_input.lower() for keyword in room_keywords)
     
-    # Check if it's a spa extension
+    # --- Check if it's a spa extension ---
     spa_keywords = ["spa", "massage", "facial", "appointment", "预约", "spa"]
     is_spa_extend = any(keyword in user_input.lower() for keyword in spa_keywords)
     
-    # Check for number of days
+    # --- Check for days in the input ---
     days_match = re.search(r'(\d+)\s*(day|days|night|nights)', user_input.lower())
     if days_match:
         extra_days = int(days_match.group(1))
     else:
-        # Check if it's just "extend" without days
-        if "extend" in user_input.lower() and not is_spa_extend:
+        # If user explicitly said "extend room booking" without days
+        if is_room_extend:
             return "📅 How many additional days would you like to extend your room stay? (e.g., '2 days' or '3 nights')"
+        elif is_spa_extend:
+            # For spa, we need time and new date
+            time_patterns = [
+                r'(\d{1,2}):(\d{2})\s*(?:am|pm)?',
+                r'(\d{1,2})\s*(?:am|pm)',
+                r'at\s+(\d{1,2})\s*(?:am|pm)?',
+            ]
+            
+            time_str = None
+            for pattern in time_patterns:
+                match = re.search(pattern, user_input, re.IGNORECASE)
+                if match:
+                    if len(match.groups()) == 2:
+                        hour = int(match.group(1))
+                        minute = int(match.group(2))
+                        if "pm" in user_input.lower() and hour < 12:
+                            hour += 12
+                        elif "am" in user_input.lower() and hour == 12:
+                            hour = 0
+                        time_str = f"{hour:02d}:{minute:02d}"
+                    else:
+                        hour = int(match.group(1))
+                        if "pm" in user_input.lower() and hour < 12:
+                            hour += 12
+                        elif "am" in user_input.lower() and hour == 12:
+                            hour = 0
+                        time_str = f"{hour:02d}:00"
+                    break
+            
+            if not time_str:
+                return "🕐 Please tell me the time of the spa booking you'd like to extend (e.g., '2 PM' or '10:30 AM')"
+            
+            # Also need the new date
+            date_str, _, _, _ = extract_date_time_from_text(user_input)
+            if not date_str:
+                return "📅 Please tell me the new date for your spa booking (e.g., 'tomorrow' or '20/8/2026')"
+            
+            success, message = extend_spa_booking(time_str, date_str)
+            return message
         else:
-            return "📅 How many additional days would you like to extend? (e.g., '2 days' or '3 nights')"
+            # Generic extend without specifying room or spa
+            return """📋 I can help you extend either your <strong>room stay</strong> or your <strong>spa booking</strong>.
+
+Please specify what you'd like to extend:
+• <strong>Room:</strong> "Extend my room by 2 days"
+• <strong>Spa:</strong> "Extend my 2 PM spa to tomorrow"
+
+💡 <i>For room extensions, I'll update your check-out date. For spa extensions, I'll move your booking to a new date.</i>"""
     
     # Validate days
     if extra_days < 1:
@@ -736,17 +785,18 @@ def process_extend_booking(user_input):
     if extra_days > 30:
         return "❌ I'm sorry, but we can only extend bookings by up to 30 days at a time. Please contact the front desk for longer extensions."
     
+    # --- If it's a room extension with days, do it immediately ---
     if is_room_extend:
-        # Room extension
         success, message = extend_room_stay(extra_days)
         return message
+    
+    # --- If it's a spa extension with days, process it ---
     elif is_spa_extend:
-        # Spa extension - need the time of the booking
+        # Need the time and new date
         time_patterns = [
-            r'(\d{1,2}):(\d{2})\s*(?:am|pm)?',  # 2:30 PM
-            r'(\d{1,2})\s*(?:am|pm)',  # 2 PM
-            r'at\s+(\d{1,2})\s*(?:am|pm)?',  # at 2 PM
-            r'(\d{1,2})\s*(?:am|pm)\s*(?:booking|appointment)?',  # 2 PM booking
+            r'(\d{1,2}):(\d{2})\s*(?:am|pm)?',
+            r'(\d{1,2})\s*(?:am|pm)',
+            r'at\s+(\d{1,2})\s*(?:am|pm)?',
         ]
         
         time_str = None
@@ -773,7 +823,7 @@ def process_extend_booking(user_input):
         if not time_str:
             return "🕐 Please tell me the time of the spa booking you'd like to extend (e.g., '2 PM' or '10:30 AM')"
         
-        # Also need the new date
+        # Get new date
         date_str, _, _, _ = extract_date_time_from_text(user_input)
         if not date_str:
             return "📅 Please tell me the new date for your spa booking (e.g., 'tomorrow' or '20/8/2026')"
@@ -781,7 +831,6 @@ def process_extend_booking(user_input):
         success, message = extend_spa_booking(time_str, date_str)
         return message
     else:
-        # If neither room nor spa is specified, ask for clarification
         return """📋 I can help you extend either your <strong>room stay</strong> or your <strong>spa booking</strong>.
 
 Please specify what you'd like to extend:
