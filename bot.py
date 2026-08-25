@@ -614,7 +614,7 @@ def cancel_spa_booking(time_str, guest_name="Mr. Alexander Vance"):
 
 
 # ==========================================
-# 4.6. Extend Booking Function (FIXED)
+# 4.6. Extend Booking Function
 # ==========================================
 def extend_room_stay(extra_days, guest_name="Mr. Alexander Vance"):
     """
@@ -709,7 +709,7 @@ def extend_spa_booking(time_str, new_date_str, guest_name="Mr. Alexander Vance")
 
 def process_extend_booking(user_input):
     """
-    Process booking extension request - FIXED VERSION
+    Process booking extension request
     """
     # --- Check if it's a room extension ---
     room_keywords = [
@@ -841,7 +841,7 @@ Please specify what you'd like to extend:
 
 
 # ==========================================
-# 5. Real-Time Weather API Integration with Attractions
+# 5. Real-Time Weather API Integration with Attractions (UPDATED WITH LINKS)
 # ==========================================
 def get_realtime_weather():
     """Fetches real-time weather using Open-Meteo API with WMO translation and attraction suggestions."""
@@ -884,23 +884,27 @@ def get_realtime_weather():
             max_temps = daily.get("temperature_2m_max", [30, 31, 30])
             min_temps = daily.get("temperature_2m_min", [24, 24, 25])
 
-            attraction_suggestions = get_attraction_suggestions(weather_type, curr_temp)
+            # Get attraction suggestions with links
+            attraction_suggestions = get_attraction_suggestions_with_links(weather_type, curr_temp)
 
             return {
                 "success": True,
                 "temp": curr_temp,
                 "condition": weather_condition,
                 "weather_type": weather_type,
-                "formatted_text": (
+                "weather_text": (
                     f"🌤️ <strong>Grand Apex Advisory Weather Service</strong><br><br>"
                     f"It is currently <strong>{curr_temp}°C</strong> with <strong>{weather_condition}</strong> over the resort grounds.<br><br>"
                     f"<strong>3-Day Horizon:</strong><br>"
                     f"• <strong>Today ({dates[0]})</strong>: {min_temps[0]}°C to {max_temps[0]}°C<br>"
                     f"• <strong>Tomorrow ({dates[1]})</strong>: {min_temps[1]}°C to {max_temps[1]}°C<br>"
-                    f"• <strong>Day After ({dates[2]})</strong>: {min_temps[2]}°C to {max_temps[2]}°C<br><br>"
-                    f"{attraction_suggestions}<br><br>"
-                    f"🌂 <i>Should you wish to step out for sightseeing, luxury umbrellas and chauffeur-driven limousines are available at the Concierge Desk.</i>"
-                )
+                    f"• <strong>Day After ({dates[2]})</strong>: {min_temps[2]}°C to {max_temps[2]}°C<br>"
+                ),
+                "attraction_text": f"""
+<br><strong>🏙️ Based on today's weather, here are my recommendations:</strong><br><br>
+{attraction_suggestions}<br>
+🌂 <i>Should you wish to step out for sightseeing, luxury umbrellas and chauffeur-driven limousines are available at the Concierge Desk.</i>
+"""
             }
         else:
             return {
@@ -908,11 +912,11 @@ def get_realtime_weather():
                 "temp": 28,
                 "condition": "☀️ Sunny & Warm",
                 "weather_type": "sunny",
-                "formatted_text": (
+                "weather_text": (
                     "☀️ The weather around Grand Apex is delightfully warm (28°C). "
-                    "Perfect day to explore the Petronas Twin Towers and KLCC Park! "
-                    "Please let me know if you would like me to arrange a chauffeur for you."
-                )
+                    "Perfect day to explore the city!"
+                ),
+                "attraction_text": get_attraction_suggestions_with_links("sunny", 28)
             }
     except requests.exceptions.Timeout:
         return {
@@ -920,19 +924,14 @@ def get_realtime_weather():
             "temp": 32,
             "condition": "☀️ Sunny & Warm",
             "weather_type": "sunny",
-            "formatted_text": (
+            "weather_text": (
                 "☀️ <strong>Kuala Lumpur Weather Update</strong><br><br>"
                 "Kuala Lumpur is experiencing its typical warm tropical weather today.<br><br>"
                 "🌡️ <strong>Current Weather:</strong><br>"
                 "• Temperature: ~32°C (89°F)<br>"
-                "• Conditions: Warm and humid<br><br>"
-                "🏙️ <strong>Recommended Activities:</strong><br><br>"
-                "🏗️ <strong>Petronas Twin Towers</strong> — Visit the Skybridge for panoramic views<br><br>"
-                "🛍️ <strong>Suria KLCC</strong> — World-class shopping experience<br><br>"
-                "🧖‍♀️ <strong>Apex Executive Spa</strong> — Perfect for relaxing indoors<br><br>"
-                "💡 <strong>Pro Tip:</strong> Stay hydrated and enjoy the air-conditioned attractions!<br><br>"
-                "🌂 <i>Our Concierge Desk can arrange transportation to any attraction you'd like to visit.</i>"
-            )
+                "• Conditions: Warm and humid<br>"
+            ),
+            "attraction_text": get_attraction_suggestions_with_links("sunny", 32)
         }
     except Exception:
         return {
@@ -940,65 +939,104 @@ def get_realtime_weather():
             "temp": 28,
             "condition": "☀️ Sunny & Clear",
             "weather_type": "sunny",
-            "formatted_text": (
-                "☀️ Weather forecast updated: Mild and suitable for local exploration. "
-                "I recommend visiting the Batu Caves or taking a Kuala Lumpur city tour. "
-                "May I reserve a table at our Sky Garden Lounge for you?"
-            )
+            "weather_text": (
+                "☀️ Weather forecast updated: Mild and suitable for local exploration."
+            ),
+            "attraction_text": get_attraction_suggestions_with_links("sunny", 28)
         }
 
-def get_attraction_suggestions(weather_type, temperature):
-    """Returns attraction suggestions based on weather conditions in Kuala Lumpur."""
+def get_attraction_suggestions_with_links(weather_type, temperature):
+    """Returns attraction suggestions with website links based on weather conditions in Kuala Lumpur."""
     
     attractions = {
         "sunny": f"""
-🏙️ <strong>Perfect Day for Sightseeing! ({temperature}°C)</strong><br><br>
-✨ <strong>Top Attractions to Visit Today:</strong><br><br>
-🏗️ <strong>Petronas Twin Towers</strong> — Iconic landmark with breathtaking views from the Skybridge (Open 10:00 AM - 6:00 PM)<br><br>
-🌳 <strong>KLCC Park</strong> — Beautiful urban park with a 1.3km jogging trail and Lake Symphony (Light show at 8:00 PM)<br><br>
-🛍️ <strong>Pavilion KL</strong> — Premier shopping mall with luxury brands and fine dining<br><br>
-🏛️ <strong>Islamic Arts Museum Malaysia</strong> — World-class collection of Islamic decorative arts<br><br>
-🕌 <strong>National Mosque of Malaysia</strong> — Stunning modern Islamic architecture (Visitors welcome 9:00 AM - 5:00 PM)<br><br>
+🏗️ <strong>Petronas Twin Towers</strong> — Iconic landmark with breathtaking views from the Skybridge<br>
+🔗 <a href="https://www.petronastwintowers.com.my/" target="_blank">Visit Website</a> | Open 10:00 AM - 6:00 PM<br><br>
+
+🌳 <strong>KLCC Park</strong> — Beautiful urban park with a 1.3km jogging trail and Lake Symphony<br>
+🔗 <a href="https://www.klccpark.com.my/" target="_blank">Visit Website</a> | Light show at 8:00 PM<br><br>
+
+🛍️ <strong>Pavilion KL</strong> — Premier shopping mall with luxury brands and fine dining<br>
+🔗 <a href="https://www.pavilion-kl.com/" target="_blank">Visit Website</a> | Open 10:00 AM - 10:00 PM<br><br>
+
+🏛️ <strong>Islamic Arts Museum Malaysia</strong> — World-class collection of Islamic decorative arts<br>
+🔗 <a href="https://www.iamm.org.my/" target="_blank">Visit Website</a> | Open 9:00 AM - 6:00 PM<br><br>
+
+🕌 <strong>National Mosque of Malaysia</strong> — Stunning modern Islamic architecture<br>
+🔗 <a href="https://www.masjidnegara.gov.my/" target="_blank">Visit Website</a> | Visitors welcome 9:00 AM - 5:00 PM<br><br>
+
 💡 <strong>Pro Tip:</strong> Morning visits are recommended to avoid the midday heat!
 """,
         "cloudy": f"""
-⛅ <strong>Great Day for Exploring! ({temperature}°C)</strong><br><br>
-✨ <strong>Top Attractions for Cloudy Weather:</strong><br><br>
-🏛️ <strong>National Museum of Malaysia</strong> — Discover Malaysian history and culture (Open 9:00 AM - 5:00 PM)<br><br>
-🐟 <strong>Aquaria KLCC</strong> — Stunning underwater world at the Petronas Twin Towers<br><br>
-🕌 <strong>Sultan Abdul Samad Building</strong> — Beautiful Moorish-style architecture in Merdeka Square<br><br>
-🎨 <strong>Bank Negara Malaysia Museum</strong> — Interactive museum featuring currency and art galleries<br><br>
-🎭 <strong>Istana Budaya</strong> — The National Theatre offering cultural performances<br><br>
+🏛️ <strong>National Museum of Malaysia</strong> — Discover Malaysian history and culture<br>
+🔗 <a href="https://www.muziumnegara.gov.my/" target="_blank">Visit Website</a> | Open 9:00 AM - 5:00 PM<br><br>
+
+🐟 <strong>Aquaria KLCC</strong> — Stunning underwater world at the Petronas Twin Towers<br>
+🔗 <a href="https://www.aquariaklcc.com/" target="_blank">Visit Website</a> | Open 10:00 AM - 7:00 PM<br><br>
+
+🕌 <strong>Sultan Abdul Samad Building</strong> — Beautiful Moorish-style architecture in Merdeka Square<br>
+🔗 <a href="https://www.dbkl.gov.my/" target="_blank">Visit Website</a> | Open for public viewing<br><br>
+
+🎨 <strong>Bank Negara Malaysia Museum</strong> — Interactive museum featuring currency and art galleries<br>
+🔗 <a href="https://www.bnm.gov.my/museum" target="_blank">Visit Website</a> | Open 10:00 AM - 6:00 PM<br><br>
+
+🎭 <strong>Istana Budaya</strong> — The National Theatre offering cultural performances<br>
+🔗 <a href="https://www.istanabudaya.gov.my/" target="_blank">Visit Website</a> | Check showtimes online<br><br>
+
 💡 <strong>Pro Tip:</strong> Perfect weather for both indoor and outdoor activities!
 """,
         "rainy": f"""
-🌧️ <strong>Indoor Adventures Recommended! ({temperature}°C)</strong><br><br>
-✨ <strong>Top Indoor Attractions for Rainy Days:</strong><br><br>
-🛍️ <strong>Pavilion KL & Suria KLCC</strong> — World-class shopping with covered walkways connecting malls<br><br>
-🐟 <strong>Aquaria KLCC</strong> — Spectacular underwater tunnel and marine life exhibits<br><br>
-🎨 <strong>KLCC Art Gallery</strong> — Contemporary Malaysian art exhibitions<br><br>
-🖼️ <strong>National Art Gallery</strong> — Explore Malaysian artistic heritage<br><br>
-🎭 <strong>Theatre & Cinema</strong> — Catch a movie or stage performance at Pavilion KL<br><br>
-🍽️ <strong>Food Court Exploration</strong> — Enjoy Malaysian street food in air-conditioned comfort at Lot 10 Hutong<br><br>
+🛍️ <strong>Pavilion KL & Suria KLCC</strong> — World-class shopping with covered walkways connecting malls<br>
+🔗 <a href="https://www.pavilion-kl.com/" target="_blank">Visit Website</a> | Open 10:00 AM - 10:00 PM<br><br>
+
+🐟 <strong>Aquaria KLCC</strong> — Spectacular underwater tunnel and marine life exhibits<br>
+🔗 <a href="https://www.aquariaklcc.com/" target="_blank">Visit Website</a> | Open 10:00 AM - 7:00 PM<br><br>
+
+🎨 <strong>KLCC Art Gallery</strong> — Contemporary Malaysian art exhibitions<br>
+🔗 <a href="https://www.klccgallery.com/" target="_blank">Visit Website</a> | Open 10:00 AM - 8:00 PM<br><br>
+
+🖼️ <strong>National Art Gallery</strong> — Explore Malaysian artistic heritage<br>
+🔗 <a href="https://www.artgallery.gov.my/" target="_blank">Visit Website</a> | Open 9:00 AM - 5:00 PM<br><br>
+
+🎭 <strong>Theatre & Cinema</strong> — Catch a movie or stage performance at Pavilion KL<br>
+🔗 <a href="https://www.gsc.com.my/" target="_blank">Visit Website</a> | Check showtimes online<br><br>
+
+🍽️ <strong>Food Court Exploration</strong> — Enjoy Malaysian street food in air-conditioned comfort at Lot 10 Hutong<br>
+🔗 <a href="https://www.lot10hutong.com/" target="_blank">Visit Website</a> | Open 10:00 AM - 10:00 PM<br><br>
+
 💡 <strong>Pro Tip:</strong> All attractions are connected via covered walkways or underground tunnels!
 """,
         "foggy": f"""
-🌫️ <strong>Indoor & Low-Altitude Activities ({temperature}°C)</strong><br><br>
-✨ <strong>Recommended Activities:</strong><br><br>
-🛍️ <strong>KL Gateway Mall</strong> — Shopping with a view of the KL skyline<br><br>
-🐟 <strong>Aquaria KLCC</strong> — Perfect indoor attraction for all ages<br><br>
-📚 <strong>Rumah Penghulu</strong> — Traditional Malay house museum at KLCC<br><br>
-🎨 <strong>Canvas Gallery</strong> — Contemporary art exhibitions<br><br>
+🛍️ <strong>KL Gateway Mall</strong> — Shopping with a view of the KL skyline<br>
+🔗 <a href="https://www.klgateway.com/" target="_blank">Visit Website</a> | Open 10:00 AM - 10:00 PM<br><br>
+
+🐟 <strong>Aquaria KLCC</strong> — Perfect indoor attraction for all ages<br>
+🔗 <a href="https://www.aquariaklcc.com/" target="_blank">Visit Website</a> | Open 10:00 AM - 7:00 PM<br><br>
+
+📚 <strong>Rumah Penghulu</strong> — Traditional Malay house museum at KLCC<br>
+🔗 <a href="https://www.klcc.com.my/" target="_blank">Visit Website</a> | Open 10:00 AM - 6:00 PM<br><br>
+
+🎨 <strong>Canvas Gallery</strong> — Contemporary art exhibitions<br>
+🔗 <a href="https://www.canvasgallerykl.com/" target="_blank">Visit Website</a> | Open 11:00 AM - 7:00 PM<br><br>
+
 💡 <strong>Pro Tip:</strong> Great day for spa treatments at our Apex Executive Wellness & Spa!
 """,
         "pleasant": f"""
-🌤️ <strong>Perfect Weather for Exploration! ({temperature}°C)</strong><br><br>
-✨ <strong>Must-Visit Attractions:</strong><br><br>
-🏙️ <strong>Petronas Twin Towers & Skybridge</strong> — Iconic views of the city<br><br>
-🌸 <strong>Perdana Botanical Garden</strong> — Beautiful tropical gardens with orchid garden<br><br>
-🛍️ <strong>Central Market</strong> — Arts and crafts paradise<br><br>
-🏛️ <strong>Kuala Lumpur City Gallery</strong> — KL's history and culture<br><br>
-🌳 <strong>FRIM Forest Reserve</strong> — Canopy walkway and nature trails<br><br>
+🏙️ <strong>Petronas Twin Towers & Skybridge</strong> — Iconic views of the city<br>
+🔗 <a href="https://www.petronastwintowers.com.my/" target="_blank">Visit Website</a> | Open 10:00 AM - 6:00 PM<br><br>
+
+🌸 <strong>Perdana Botanical Garden</strong> — Beautiful tropical gardens with orchid garden<br>
+🔗 <a href="https://www.klbotanicalgarden.gov.my/" target="_blank">Visit Website</a> | Open 7:00 AM - 8:00 PM<br><br>
+
+🛍️ <strong>Central Market</strong> — Arts and crafts paradise<br>
+🔗 <a href="https://www.centralmarket.com.my/" target="_blank">Visit Website</a> | Open 10:00 AM - 10:00 PM<br><br>
+
+🏛️ <strong>Kuala Lumpur City Gallery</strong> — KL's history and culture<br>
+🔗 <a href="https://www.klcitygallery.com/" target="_blank">Visit Website</a> | Open 9:00 AM - 6:00 PM<br><br>
+
+🌳 <strong>FRIM Forest Reserve</strong> — Canopy walkway and nature trails<br>
+🔗 <a href="https://www.frim.gov.my/" target="_blank">Visit Website</a> | Open 8:00 AM - 6:00 PM<br><br>
+
 💡 <strong>Pro Tip:</strong> Consider visiting both outdoor and indoor attractions!
 """
     }
@@ -1166,14 +1204,22 @@ Alternatively, you may dial <strong>Ext '802'</strong> to speak directly with ou
     "ask_attractions": """
 🏙️ <strong>Top Attractions in Kuala Lumpur</strong><br><br>
 ✨ <strong>Must-Visit Places:</strong><br><br>
-🏗️ <strong>Petronas Twin Towers</strong> — Iconic landmark with Skybridge and observation deck<br><br>
-🌳 <strong>KLCC Park</strong> — Beautiful urban park with jogging trail and Lake Symphony<br><br>
-🛍️ <strong>Pavilion KL & Suria KLCC</strong> — Premier shopping destinations<br><br>
-🏛️ <strong>Islamic Arts Museum</strong> — World-class Islamic art collection<br><br>
-🕌 <strong>National Mosque</strong> — Stunning modern Islamic architecture<br><br>
-🐟 <strong>Aquaria KLCC</strong> — Spectacular underwater world experience<br><br>
-🌸 <strong>Perdana Botanical Garden</strong> — Tropical gardens and orchid display<br><br>
-🖼️ <strong>National Art Gallery</strong> — Malaysian artistic heritage<br><br>
+🏗️ <strong>Petronas Twin Towers</strong> — Iconic landmark with Skybridge and observation deck<br>
+🔗 <a href="https://www.petronastwintowers.com.my/" target="_blank">Visit Website</a><br><br>
+🌳 <strong>KLCC Park</strong> — Beautiful urban park with jogging trail and Lake Symphony<br>
+🔗 <a href="https://www.klccpark.com.my/" target="_blank">Visit Website</a><br><br>
+🛍️ <strong>Pavilion KL & Suria KLCC</strong> — Premier shopping destinations<br>
+🔗 <a href="https://www.pavilion-kl.com/" target="_blank">Visit Website</a><br><br>
+🏛️ <strong>Islamic Arts Museum</strong> — World-class Islamic art collection<br>
+🔗 <a href="https://www.iamm.org.my/" target="_blank">Visit Website</a><br><br>
+🕌 <strong>National Mosque</strong> — Stunning modern Islamic architecture<br>
+🔗 <a href="https://www.masjidnegara.gov.my/" target="_blank">Visit Website</a><br><br>
+🐟 <strong>Aquaria KLCC</strong> — Spectacular underwater world experience<br>
+🔗 <a href="https://www.aquariaklcc.com/" target="_blank">Visit Website</a><br><br>
+🌸 <strong>Perdana Botanical Garden</strong> — Tropical gardens and orchid display<br>
+🔗 <a href="https://www.klbotanicalgarden.gov.my/" target="_blank">Visit Website</a><br><br>
+🖼️ <strong>National Art Gallery</strong> — Malaysian artistic heritage<br>
+🔗 <a href="https://www.artgallery.gov.my/" target="_blank">Visit Website</a><br><br>
 📞 For transportation arrangements, please dial <strong>Ext '0'</strong> for our Concierge Desk!
 """
 }
@@ -1304,7 +1350,7 @@ def process_spa_booking(user_input):
     weather_keywords = ["weather", "temperature", "forecast", "rain", "sunny", "cloudy", "degrees", "°c", "°f"]
     if any(keyword in user_input.lower() for keyword in weather_keywords):
         weather_res = get_realtime_weather()
-        return weather_res["formatted_text"]
+        return weather_res["weather_text"] + weather_res["attraction_text"]
     
     # Extract date, time, and service from user input
     date_str, time_str, service, error = extract_date_time_from_text(user_input)
@@ -1498,10 +1544,11 @@ def get_bot_response(user_input):
     
     is_weather_query = any(keyword in cleaned_input.lower() for keyword in weather_keywords)
     
-    # If it's a weather query, handle it immediately
+    # If it's a weather query, handle it immediately with TWO responses
     if is_weather_query:
         weather_res = get_realtime_weather()
-        return correction_note + weather_res["formatted_text"]
+        # Send weather first, then attractions as separate message
+        return correction_note + weather_res["weather_text"] + weather_res["attraction_text"]
 
     # --- Check if this is a EXTEND BOOKING request ---
     extend_keywords = [
@@ -1668,7 +1715,7 @@ def get_bot_response(user_input):
 
         if predicted_tag == "ask_weather":
             weather_res = get_realtime_weather()
-            return correction_note + weather_res["formatted_text"]
+            return correction_note + weather_res["weather_text"] + weather_res["attraction_text"]
 
         if predicted_tag == "internal_call":
             return correction_note + render_internal_call_card()
