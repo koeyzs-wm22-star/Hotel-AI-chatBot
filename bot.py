@@ -1167,10 +1167,15 @@ def process_cancel_booking(user_input):
     """
     Process booking cancellation request
     """
-    # Check if user wants to view bookings first
-    view_keywords = ["view", "show", "list", "see", "查看", "显示", "列表"]
-    if any(keyword in user_input.lower() for keyword in view_keywords):
+    # Check if user wants to view bookings first (with more specific keywords)
+    view_keywords = ["view", "show", "list", "see", "display", "查看", "显示", "列表", "我的预约"]
+    # Only treat as view request if it has view keywords and NOT cancel
+    if any(keyword in user_input.lower() for keyword in view_keywords) and "cancel" not in user_input.lower():
         return view_my_bookings()
+    
+    # If user just said "booking" or "my booking" without cancel/view context
+    if user_input.lower().strip() in ["booking", "my booking", "bookings", "my bookings"]:
+        return "📋 Would you like to <strong>view your bookings</strong> or <strong>cancel a booking</strong>? Please specify what you'd like to do."
     
     # Try to extract time from the input
     time_patterns = [
@@ -1179,6 +1184,7 @@ def process_cancel_booking(user_input):
         r'(\d{1,2})\s*o\'clock',  # 2 o'clock
         r'at\s+(\d{1,2})\s*(?:am|pm)?',  # at 2 PM
         r'for\s+(\d{1,2})\s*(?:am|pm)?',  # for 2 PM
+        r'(\d{1,2})\s*(?:am|pm)\s*(?:booking|appointment)?',  # 2 PM booking
     ]
     
     time_str = None
@@ -1245,18 +1251,38 @@ def get_bot_response(user_input):
         weather_res = get_realtime_weather()
         return correction_note + weather_res["formatted_text"]
 
-    # --- Check if this is a cancel booking request ---
-    cancel_keywords = ["cancel", "取消", "cancellation", "cancelling"]
-    if any(keyword in cleaned_input.lower() for keyword in cancel_keywords):
+    # --- Check if this is a VIEW BOOKINGS request ---
+    # Must check this BEFORE cancel/booking to avoid conflicts
+    view_keywords = [
+        "view my bookings", "show my bookings", "my bookings", "my reservation",
+        "view appointments", "show appointments", "list my bookings",
+        "查看我的预约", "我的预约", "预约记录", "查看预约"
+    ]
+    
+    is_view_request = any(keyword in cleaned_input.lower() for keyword in view_keywords)
+    
+    if is_view_request:
+        return correction_note + view_my_bookings()
+
+    # --- Check if this is a CANCEL BOOKING request ---
+    # Must include explicit cancel words and NOT be a view request
+    cancel_keywords = [
+        "cancel my", "cancel this", "cancel the", "cancel booking",
+        "取消我的", "取消预约", "取消预订", "cancellation",
+        "i want to cancel", "i would like to cancel", "please cancel"
+    ]
+    
+    is_cancel_request = any(keyword in cleaned_input.lower() for keyword in cancel_keywords)
+    
+    # Also check if "cancel" is the main intent
+    if "cancel" in cleaned_input.lower() and not is_view_request:
+        is_cancel_request = True
+    
+    if is_cancel_request:
         result = process_cancel_booking(user_input)
         if "please tell me the time" in result.lower():
             st.session_state.awaiting_cancel_booking = True
         return correction_note + result
-
-    # --- Check if this is a view bookings request ---
-    view_keywords = ["view my bookings", "show my bookings", "my bookings", "查看我的预约", "我的预约"]
-    if any(keyword in cleaned_input.lower() for keyword in view_keywords):
-        return correction_note + view_my_bookings()
 
     # --- Check if this is in cancel booking context ---
     if st.session_state.awaiting_cancel_booking:
@@ -1319,9 +1345,10 @@ def get_bot_response(user_input):
     
     # --- Check if this is a spa booking request ---
     spa_booking_keywords = [
-        "book spa", "spa booking", "reserve spa", "appointment", 
+        "book spa", "spa booking", "reserve spa", 
         "massage", "facial", "hot stone", "aromatherapy",
-        "预约spa", "订spa", "spa预约"
+        "预约spa", "订spa", "spa预约", "make a booking",
+        "i want to book", "i'd like to book", "i would like to book"
     ]
     
     is_spa_booking_request = any(keyword in cleaned_input.lower() for keyword in spa_booking_keywords)
