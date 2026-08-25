@@ -42,13 +42,16 @@ if "messages" not in st.session_state:
 if "awaiting_spa_booking" not in st.session_state:
     st.session_state.awaiting_spa_booking = False
 
+if "awaiting_cancel_booking" not in st.session_state:
+    st.session_state.awaiting_cancel_booking = False
+
 if "latest_spa_booking" not in st.session_state:
     st.session_state.latest_spa_booking = None
 
 # Spa Booking Database (In-memory simulation)
 if "spa_bookings" not in st.session_state:
     st.session_state.spa_bookings = {
-        "2026-07-28 10:00": {"guest_name": "Mr. Johnson", "service": "Aromatherapy Massage", "duration": 60},
+        "2026-07-28 10:00": {"guest_name": "Mr. Alexander Vance", "service": "Aromatherapy Massage", "duration": 60},
         "2026-07-28 11:00": {"guest_name": "Ms. Lee", "service": "Deep Tissue Massage", "duration": 60},
         "2026-07-28 14:00": {"guest_name": "Mr. Tan", "service": "Hot Stone Therapy", "duration": 90},
         "2026-07-29 09:00": {"guest_name": "Mrs. Wong", "service": "Hydrating Facial", "duration": 60},
@@ -76,6 +79,7 @@ def clear_chat_history():
         }
     ]
     st.session_state.awaiting_spa_booking = False
+    st.session_state.awaiting_cancel_booking = False
     st.session_state.latest_spa_booking = None
 
 def clean_text(text):
@@ -117,6 +121,8 @@ def correct_spelling(text):
         'spa': 'spa',
         'yest': 'yesterday',
         'tmr': 'tomorrow',
+        'cancle': 'cancel',
+        'cancell': 'cancel',
     }
     
     words = text.split()
@@ -421,7 +427,7 @@ def validate_booking_datetime(booking_datetime, duration_minutes=60):
 
 
 # ==========================================
-# 4. Spa Booking Validation System
+# 4. Spa Booking & Cancellation System
 # ==========================================
 def is_spa_slot_available(booking_datetime, duration_minutes=60, exclude_booking=None):
     """
@@ -515,6 +521,80 @@ def book_spa_slot(guest_name, service, booking_datetime, duration_minutes=60):
     }
     
     return True, f"✅ <strong>Booking Confirmed!</strong><br><br>📅 <strong>Date:</strong> {booking_datetime.strftime('%A, %B %d, %Y')}<br>🕐 <strong>Time:</strong> {booking_datetime.strftime('%I:%M %p')}<br>💆 <strong>Service:</strong> {service}<br>👤 <strong>Guest:</strong> {guest_name}<br><br>Please arrive 15 minutes early for your appointment."
+
+# ==========================================
+# 4.5. Cancel Booking Function
+# ==========================================
+def view_my_bookings(guest_name="Mr. Alexander Vance"):
+    """
+    View all bookings for a specific guest
+    Returns formatted string with all bookings
+    """
+    my_bookings = {}
+    for slot, booking in st.session_state.spa_bookings.items():
+        if booking["guest_name"] == guest_name:
+            my_bookings[slot] = booking
+    
+    if not my_bookings:
+        return "📋 <strong>No Bookings Found</strong><br><br>You don't have any active spa bookings at the moment. Would you like to make a new booking?"
+    
+    message = "📋 <strong>Your Active Spa Bookings</strong><br><br>"
+    for slot, booking in sorted(my_bookings.items()):
+        dt = datetime.strptime(slot, "%Y-%m-%d %H:%M")
+        message += f"• <strong>{dt.strftime('%A, %B %d at %I:%M %p')}</strong> - {booking['service']}<br>"
+    
+    message += "<br>💡 <i>To cancel a booking, tell me the time (e.g., 'Cancel my 10 AM booking' or 'Cancel my booking at 2:30 PM')</i>"
+    return message
+
+def cancel_spa_booking(time_str, guest_name="Mr. Alexander Vance"):
+    """
+    Cancel a spa booking by time
+    Returns (success, message)
+    """
+    # Parse the time
+    hour, minute, error = parse_time_from_string(time_str)
+    if error:
+        return False, f"❌ {error}"
+    
+    # Find the booking
+    booking_to_cancel = None
+    booking_key = None
+    
+    for slot, booking in st.session_state.spa_bookings.items():
+        if booking["guest_name"] != guest_name:
+            continue
+        
+        dt = datetime.strptime(slot, "%Y-%m-%d %H:%M")
+        if dt.hour == hour and dt.minute == minute:
+            booking_to_cancel = booking
+            booking_key = slot
+            break
+    
+    # If booking not found, try to find by time string match
+    if not booking_key:
+        # Try to match by time string in the booking
+        time_str_lower = time_str.lower()
+        for slot, booking in st.session_state.spa_bookings.items():
+            if booking["guest_name"] != guest_name:
+                continue
+            
+            dt = datetime.strptime(slot, "%Y-%m-%d %H:%M")
+            time_str_formatted = dt.strftime("%I:%M %p").lower()
+            time_str_formatted_24 = dt.strftime("%H:%M")
+            
+            if time_str_lower in time_str_formatted or time_str_lower in time_str_formatted_24:
+                booking_to_cancel = booking
+                booking_key = slot
+                break
+    
+    if not booking_key:
+        return False, f"❌ I couldn't find a booking at '{time_str}'. Please check your bookings by saying 'view my bookings'."
+    
+    # Cancel the booking
+    dt = datetime.strptime(booking_key, "%Y-%m-%d %H:%M")
+    del st.session_state.spa_bookings[booking_key]
+    
+    return True, f"✅ <strong>Booking Cancelled Successfully!</strong><br><br>📅 <strong>Date:</strong> {dt.strftime('%A, %B %d, %Y')}<br>🕐 <strong>Time:</strong> {dt.strftime('%I:%M %p')}<br>💆 <strong>Service:</strong> {booking_to_cancel['service']}<br><br>Your booking has been cancelled. If you'd like to make a new booking, just let me know!"
 
 
 # ==========================================
@@ -930,6 +1010,24 @@ def load_and_train_model():
         X.append(clean_text(p))
         y.append("ask_attractions")
 
+    # Cancel booking patterns
+    cancel_patterns = [
+        "cancel booking", "cancel my booking", "cancel spa", "cancel appointment",
+        "我要取消预约", "取消spa", "取消预订"
+    ]
+    for p in cancel_patterns:
+        X.append(clean_text(p))
+        y.append("cancel_booking")
+
+    # View bookings patterns
+    view_patterns = [
+        "view my bookings", "show my bookings", "my bookings", "view appointments",
+        "查看我的预约", "我的预约", "预约记录"
+    ]
+    for p in view_patterns:
+        X.append(clean_text(p))
+        y.append("view_bookings")
+
     if not X:
         X = ["hi", "wifi", "weather", "breakfast", "spa", "checkin", "call front desk", "services"]
         y = ["greet", "ask_wifi", "ask_weather", "ask_breakfast", "ask_spa", "ask_checkin", "internal_call", "ask_services"]
@@ -1065,6 +1163,59 @@ I'm sorry, but the time slot <strong>{booking_datetime.strftime('%A, %B %d at %I
     else:
         return message
 
+def process_cancel_booking(user_input):
+    """
+    Process booking cancellation request
+    """
+    # Check if user wants to view bookings first
+    view_keywords = ["view", "show", "list", "see", "查看", "显示", "列表"]
+    if any(keyword in user_input.lower() for keyword in view_keywords):
+        return view_my_bookings()
+    
+    # Try to extract time from the input
+    time_patterns = [
+        r'(\d{1,2}):(\d{2})\s*(?:am|pm)?',  # 2:30 PM
+        r'(\d{1,2})\s*(?:am|pm)',  # 2 PM
+        r'(\d{1,2})\s*o\'clock',  # 2 o'clock
+        r'at\s+(\d{1,2})\s*(?:am|pm)?',  # at 2 PM
+        r'for\s+(\d{1,2})\s*(?:am|pm)?',  # for 2 PM
+    ]
+    
+    time_str = None
+    for pattern in time_patterns:
+        match = re.search(pattern, user_input, re.IGNORECASE)
+        if match:
+            if len(match.groups()) == 2:  # HH:MM
+                hour = int(match.group(1))
+                minute = int(match.group(2))
+                # Check if AM/PM is in the original text
+                if "pm" in user_input.lower() and hour < 12:
+                    hour += 12
+                elif "am" in user_input.lower() and hour == 12:
+                    hour = 0
+                time_str = f"{hour:02d}:{minute:02d}"
+            else:  # HH
+                hour = int(match.group(1))
+                if "pm" in user_input.lower() and hour < 12:
+                    hour += 12
+                elif "am" in user_input.lower() and hour == 12:
+                    hour = 0
+                time_str = f"{hour:02d}:00"
+            break
+    
+    # If no time found, ask for the time
+    if not time_str:
+        return "🕐 Please tell me the time of the booking you'd like to cancel (e.g., 'Cancel my 2 PM booking' or 'Cancel my 10:30 AM appointment')"
+    
+    # Attempt to cancel the booking
+    success, message = cancel_spa_booking(time_str)
+    
+    if success:
+        st.session_state.awaiting_cancel_booking = False
+        st.session_state.latest_spa_booking = None
+    
+    return message
+
 def get_bot_response(user_input):
     # Check and correct spelling
     corrected_input, was_corrected = spell_check_and_correct(user_input)
@@ -1093,6 +1244,27 @@ def get_bot_response(user_input):
     if is_weather_query:
         weather_res = get_realtime_weather()
         return correction_note + weather_res["formatted_text"]
+
+    # --- Check if this is a cancel booking request ---
+    cancel_keywords = ["cancel", "取消", "cancellation", "cancelling"]
+    if any(keyword in cleaned_input.lower() for keyword in cancel_keywords):
+        result = process_cancel_booking(user_input)
+        if "please tell me the time" in result.lower():
+            st.session_state.awaiting_cancel_booking = True
+        return correction_note + result
+
+    # --- Check if this is a view bookings request ---
+    view_keywords = ["view my bookings", "show my bookings", "my bookings", "查看我的预约", "我的预约"]
+    if any(keyword in cleaned_input.lower() for keyword in view_keywords):
+        return correction_note + view_my_bookings()
+
+    # --- Check if this is in cancel booking context ---
+    if st.session_state.awaiting_cancel_booking:
+        st.session_state.awaiting_cancel_booking = False
+        result = process_cancel_booking(user_input)
+        if "please tell me the time" in result.lower():
+            st.session_state.awaiting_cancel_booking = True
+        return correction_note + result
 
     # --- IMPROVED: Check if this looks like a spa booking (has date/time) ---
     # Expanded date keywords
@@ -1162,7 +1334,7 @@ def get_bot_response(user_input):
             st.session_state.awaiting_spa_booking = True
         else:
             st.session_state.awaiting_spa_booking = False
-        return result
+        return correction_note + result
 
     # Spa Booking context handling (for ongoing conversations)
     if st.session_state.awaiting_spa_booking:
@@ -1171,7 +1343,7 @@ def get_bot_response(user_input):
         # Keep context active if validation failed
         if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result or "needs a date" in result or "needs a time" in result:
             st.session_state.awaiting_spa_booking = True
-        return result
+        return correction_note + result
         
     try:
         probs = model.predict_proba([cleaned_input])[0]
@@ -1185,6 +1357,15 @@ def get_bot_response(user_input):
                 "Could you please specify if you are asking about <strong>Wi-Fi</strong>, <strong>Breakfast</strong>, <strong>Services</strong>, or <strong>Check-in</strong>?<br><br>"
                 "You may also dial <strong>'0'</strong> on your room phone to connect directly with the Front Desk."
             )
+        
+        if predicted_tag == "cancel_booking":
+            result = process_cancel_booking(user_input)
+            if "please tell me the time" in result.lower():
+                st.session_state.awaiting_cancel_booking = True
+            return correction_note + result
+        
+        if predicted_tag == "view_bookings":
+            return correction_note + view_my_bookings()
         
         if predicted_tag in ["ask_spa", "ask_spa_booking"]:
             st.session_state.awaiting_spa_booking = True
