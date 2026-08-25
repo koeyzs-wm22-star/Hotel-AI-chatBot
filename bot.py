@@ -45,8 +45,20 @@ if "awaiting_spa_booking" not in st.session_state:
 if "awaiting_cancel_booking" not in st.session_state:
     st.session_state.awaiting_cancel_booking = False
 
+if "awaiting_extend_booking" not in st.session_state:
+    st.session_state.awaiting_extend_booking = False
+
 if "latest_spa_booking" not in st.session_state:
     st.session_state.latest_spa_booking = None
+
+# Room Stay Information
+if "current_stay" not in st.session_state:
+    st.session_state.current_stay = {
+        "check_in": datetime(2026, 7, 28),
+        "check_out": datetime(2026, 8, 3),
+        "room": "Penthouse 1808",
+        "guest": "Mr. Alexander Vance"
+    }
 
 # Spa Booking Database (In-memory simulation)
 if "spa_bookings" not in st.session_state:
@@ -80,6 +92,7 @@ def clear_chat_history():
     ]
     st.session_state.awaiting_spa_booking = False
     st.session_state.awaiting_cancel_booking = False
+    st.session_state.awaiting_extend_booking = False
     st.session_state.latest_spa_booking = None
 
 def clean_text(text):
@@ -123,6 +136,8 @@ def correct_spelling(text):
         'tmr': 'tomorrow',
         'cancle': 'cancel',
         'cancell': 'cancel',
+        'extend': 'extend',
+        'extand': 'extend',
     }
     
     words = text.split()
@@ -522,6 +537,7 @@ def book_spa_slot(guest_name, service, booking_datetime, duration_minutes=60):
     
     return True, f"✅ <strong>Booking Confirmed!</strong><br><br>📅 <strong>Date:</strong> {booking_datetime.strftime('%A, %B %d, %Y')}<br>🕐 <strong>Time:</strong> {booking_datetime.strftime('%I:%M %p')}<br>💆 <strong>Service:</strong> {service}<br>👤 <strong>Guest:</strong> {guest_name}<br><br>Please arrive 15 minutes early for your appointment."
 
+
 # ==========================================
 # 4.5. Cancel Booking Function
 # ==========================================
@@ -595,6 +611,164 @@ def cancel_spa_booking(time_str, guest_name="Mr. Alexander Vance"):
     del st.session_state.spa_bookings[booking_key]
     
     return True, f"✅ <strong>Booking Cancelled Successfully!</strong><br><br>📅 <strong>Date:</strong> {dt.strftime('%A, %B %d, %Y')}<br>🕐 <strong>Time:</strong> {dt.strftime('%I:%M %p')}<br>💆 <strong>Service:</strong> {booking_to_cancel['service']}<br><br>Your booking has been cancelled. If you'd like to make a new booking, just let me know!"
+
+
+# ==========================================
+# 4.6. Extend Booking Function
+# ==========================================
+def extend_room_stay(extra_days, guest_name="Mr. Alexander Vance"):
+    """
+    Extend room stay by a number of days
+    Returns (success, message)
+    """
+    current_check_out = st.session_state.current_stay["check_out"]
+    new_check_out = current_check_out + timedelta(days=extra_days)
+    st.session_state.current_stay["check_out"] = new_check_out
+    
+    return True, f"""
+✅ <strong>Stay Extended Successfully!</strong><br><br>
+🛏️ <strong>Guest:</strong> {guest_name}<br>
+🏠 <strong>Room:</strong> {st.session_state.current_stay['room']}<br>
+📅 <strong>New Check-out Date:</strong> {new_check_out.strftime('%A, %B %d, %Y')}<br>
+📆 <strong>Extended by:</strong> {extra_days} day{'s' if extra_days > 1 else ''}<br>
+💵 <strong>Total Nights:</strong> {(new_check_out - st.session_state.current_stay['check_in']).days} nights<br><br>
+💡 <i>Your new check-out date has been confirmed. Please let us know if you need any further assistance!</i>
+"""
+
+def extend_spa_booking(time_str, new_date_str, guest_name="Mr. Alexander Vance"):
+    """
+    Extend a spa booking to a new date
+    Returns (success, message)
+    """
+    # Parse the current booking time
+    hour, minute, error = parse_time_from_string(time_str)
+    if error:
+        return False, f"❌ {error}"
+    
+    # Find the booking
+    booking_to_extend = None
+    booking_key = None
+    
+    for slot, booking in st.session_state.spa_bookings.items():
+        if booking["guest_name"] != guest_name:
+            continue
+        
+        dt = datetime.strptime(slot, "%Y-%m-%d %H:%M")
+        if dt.hour == hour and dt.minute == minute:
+            booking_to_extend = booking
+            booking_key = slot
+            break
+    
+    if not booking_key:
+        return False, f"❌ I couldn't find a booking at '{time_str}'. Please check your bookings by saying 'view my bookings'."
+    
+    # Parse the new date
+    date_obj, date_error = parse_date_from_string(new_date_str)
+    if date_error:
+        return False, f"❌ {date_error}"
+    
+    # Create new datetime
+    new_datetime = date_obj.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    
+    # Validate new date is in the future
+    if new_datetime < datetime.now():
+        return False, "❌ The new date must be in the future. Please select a future date."
+    
+    # Check if the new slot is available
+    is_available, conflict = is_spa_slot_available(new_datetime, booking_to_extend["duration"], exclude_booking=booking_key)
+    
+    if not is_available:
+        if isinstance(conflict, list):
+            return False, format_conflict_message(conflict)
+        else:
+            return False, "❌ The new time slot is not available. Please choose a different date or time."
+    
+    # Cancel the old booking and create a new one
+    del st.session_state.spa_bookings[booking_key]
+    
+    new_slot_key = new_datetime.strftime("%Y-%m-%d %H:%M")
+    st.session_state.spa_bookings[new_slot_key] = booking_to_extend
+    
+    old_dt = datetime.strptime(booking_key, "%Y-%m-%d %H:%M")
+    
+    return True, f"""
+✅ <strong>Spa Booking Extended Successfully!</strong><br><br>
+📅 <strong>Old Date:</strong> {old_dt.strftime('%A, %B %d, %Y')}<br>
+🕐 <strong>Time:</strong> {old_dt.strftime('%I:%M %p')}<br>
+📅 <strong>New Date:</strong> {new_datetime.strftime('%A, %B %d, %Y')}<br>
+🕐 <strong>Time:</strong> {new_datetime.strftime('%I:%M %p')}<br>
+💆 <strong>Service:</strong> {booking_to_extend['service']}<br><br>
+💡 <i>Your booking has been successfully moved to the new date. Please arrive 15 minutes early!</i>
+"""
+
+def process_extend_booking(user_input):
+    """
+    Process booking extension request
+    """
+    # Check if it's a room extension
+    room_keywords = ["room", "stay", "check-out", "checkout", "住宿", "房间", "退房"]
+    is_room_extend = any(keyword in user_input.lower() for keyword in room_keywords)
+    
+    # Check if it's a spa extension
+    spa_keywords = ["spa", "massage", "facial", "appointment", "预约", "spa"]
+    is_spa_extend = any(keyword in user_input.lower() for keyword in spa_keywords)
+    
+    # Check for number of days
+    days_match = re.search(r'(\d+)\s*(day|days|night|nights)', user_input.lower())
+    if days_match:
+        extra_days = int(days_match.group(1))
+    else:
+        return "📅 How many additional days would you like to extend? (e.g., '2 days' or '3 nights')"
+    
+    # Validate days
+    if extra_days < 1:
+        return "❌ Please specify a valid number of days to extend (at least 1 day)."
+    if extra_days > 30:
+        return "❌ I'm sorry, but we can only extend bookings by up to 30 days at a time. Please contact the front desk for longer extensions."
+    
+    if is_room_extend or not is_spa_extend:
+        # Room extension
+        success, message = extend_room_stay(extra_days)
+        return message
+    else:
+        # Spa extension - need the time of the booking
+        time_patterns = [
+            r'(\d{1,2}):(\d{2})\s*(?:am|pm)?',  # 2:30 PM
+            r'(\d{1,2})\s*(?:am|pm)',  # 2 PM
+            r'at\s+(\d{1,2})\s*(?:am|pm)?',  # at 2 PM
+        ]
+        
+        time_str = None
+        for pattern in time_patterns:
+            match = re.search(pattern, user_input, re.IGNORECASE)
+            if match:
+                if len(match.groups()) == 2:
+                    hour = int(match.group(1))
+                    minute = int(match.group(2))
+                    if "pm" in user_input.lower() and hour < 12:
+                        hour += 12
+                    elif "am" in user_input.lower() and hour == 12:
+                        hour = 0
+                    time_str = f"{hour:02d}:{minute:02d}"
+                else:
+                    hour = int(match.group(1))
+                    if "pm" in user_input.lower() and hour < 12:
+                        hour += 12
+                    elif "am" in user_input.lower() and hour == 12:
+                        hour = 0
+                    time_str = f"{hour:02d}:00"
+                break
+        
+        if not time_str:
+            return "🕐 Please tell me the time of the spa booking you'd like to extend (e.g., '2 PM' or '10:30 AM')"
+        
+        # Also need the new date
+        date_str, _, _, _ = extract_date_time_from_text(user_input)
+        if not date_str:
+            return "📅 Please tell me the new date for your spa booking (e.g., 'tomorrow' or '20/8/2026')"
+        
+        success, message = extend_spa_booking(time_str, date_str)
+        return message
 
 
 # ==========================================
@@ -1028,6 +1202,15 @@ def load_and_train_model():
         X.append(clean_text(p))
         y.append("view_bookings")
 
+    # Extend booking patterns
+    extend_patterns = [
+        "extend booking", "extend stay", "extend my stay", "extend room",
+        "extend appointment", "延长住宿", "延长预约", "延期"
+    ]
+    for p in extend_patterns:
+        X.append(clean_text(p))
+        y.append("extend_booking")
+
     if not X:
         X = ["hi", "wifi", "weather", "breakfast", "spa", "checkin", "call front desk", "services"]
         y = ["greet", "ask_wifi", "ask_weather", "ask_breakfast", "ask_spa", "ask_checkin", "internal_call", "ask_services"]
@@ -1251,8 +1434,33 @@ def get_bot_response(user_input):
         weather_res = get_realtime_weather()
         return correction_note + weather_res["formatted_text"]
 
+    # --- Check if this is a EXTEND BOOKING request ---
+    extend_keywords = [
+        "extend", "延长", "延期", "extend my stay", "extend booking",
+        "extend room", "extend appointment", "add days", "add more days",
+        "increase stay", "longer stay", "extend spa"
+    ]
+    
+    is_extend_request = any(keyword in cleaned_input.lower() for keyword in extend_keywords)
+    
+    if is_extend_request:
+        result = process_extend_booking(user_input)
+        if "How many additional days" in result or "Please tell me the time" in result:
+            st.session_state.awaiting_extend_booking = True
+        else:
+            st.session_state.awaiting_extend_booking = False
+        return correction_note + result
+
+    # --- Check if this is in extend booking context ---
+    if st.session_state.awaiting_extend_booking:
+        result = process_extend_booking(user_input)
+        if "How many additional days" in result or "Please tell me the time" in result:
+            st.session_state.awaiting_extend_booking = True
+        else:
+            st.session_state.awaiting_extend_booking = False
+        return correction_note + result
+
     # --- Check if this is a VIEW BOOKINGS request ---
-    # Must check this BEFORE cancel/booking to avoid conflicts
     view_keywords = [
         "view my bookings", "show my bookings", "my bookings", "my reservation",
         "view appointments", "show appointments", "list my bookings",
@@ -1265,7 +1473,6 @@ def get_bot_response(user_input):
         return correction_note + view_my_bookings()
 
     # --- Check if this is a CANCEL BOOKING request ---
-    # Must include explicit cancel words and NOT be a view request
     cancel_keywords = [
         "cancel my", "cancel this", "cancel the", "cancel booking",
         "取消我的", "取消预约", "取消预订", "cancellation",
@@ -1274,7 +1481,6 @@ def get_bot_response(user_input):
     
     is_cancel_request = any(keyword in cleaned_input.lower() for keyword in cancel_keywords)
     
-    # Also check if "cancel" is the main intent
     if "cancel" in cleaned_input.lower() and not is_view_request:
         is_cancel_request = True
     
@@ -1293,57 +1499,47 @@ def get_bot_response(user_input):
         return correction_note + result
 
     # --- IMPROVED: Check if this looks like a spa booking (has date/time) ---
-    # Expanded date keywords
     date_keywords = [
         'today', 'todays', 'tomorrow', 'tmr', 'tomorow', 
         'yesterday', 'yest', 'yday', 'day after tomorrow', 'next week'
     ]
     
-    # Check for date patterns (including standalone keywords)
     date_patterns = [
-        r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}',  # 20/8/2026 or 20-8-2026
-        r'\d{1,2}\s+[a-zA-Z]{3,}\s+\d{4}',  # 20 Aug 2026
+        r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}',
+        r'\d{1,2}\s+[a-zA-Z]{3,}\s+\d{4}',
         r'\b(today|todays|tomorrow|tmr|tomorow|yesterday|yest|yday|day after tomorrow|next week)\b',
     ]
     
-    # Check for time patterns
     time_patterns = [
-        r'\d{1,2}:\d{2}\s*(?:am|pm)?',  # 2:30 PM or 14:30
-        r'\d{1,2}\s*(?:am|pm)\s*(?:o\'clock)?',  # 2 PM or 2pm
+        r'\d{1,2}:\d{2}\s*(?:am|pm)?',
+        r'\d{1,2}\s*(?:am|pm)\s*(?:o\'clock)?',
         r'\b(noon|midday|midnight)\b',
-        r'\d{1,2}\s*(?:am|pm)',  # 10am, 2pm
-        r'\d{1,2}\s*(?:o\'clock)',  # 2 o'clock
-        r'\d{1,2}\s*(?:in the)?\s*(morning|afternoon|evening|night)',  # 9 in the morning
+        r'\d{1,2}\s*(?:am|pm)',
+        r'\d{1,2}\s*(?:o\'clock)',
+        r'\d{1,2}\s*(?:in the)?\s*(morning|afternoon|evening|night)',
     ]
     
-    # Check if text contains any date keyword
     has_date = any(keyword in cleaned_input.lower() for keyword in date_keywords)
     
-    # Also check with regex for date patterns
     if not has_date:
         for pattern in date_patterns:
             if re.search(pattern, cleaned_input, re.IGNORECASE):
                 has_date = True
                 break
     
-    # Check if text contains any time pattern
     has_time = False
     for pattern in time_patterns:
         if re.search(pattern, cleaned_input, re.IGNORECASE):
             has_time = True
             break
     
-    # Also check for standalone numbers that could be hours
     if not has_time:
-        # Look for numbers 1-12 that might be hours
         numbers = re.findall(r'\b([1-9]|1[0-2])\b', cleaned_input)
         if numbers:
             has_time = True
     
-    # If input has date and time, it's a spa booking
     is_spa_booking_likely = has_date and has_time
     
-    # --- Check if this is a spa booking request ---
     spa_booking_keywords = [
         "book spa", "spa booking", "reserve spa", 
         "massage", "facial", "hot stone", "aromatherapy",
@@ -1353,21 +1549,17 @@ def get_bot_response(user_input):
     
     is_spa_booking_request = any(keyword in cleaned_input.lower() for keyword in spa_booking_keywords)
     
-    # --- MAIN LOGIC: If in spa booking context OR it's a booking request OR has date/time ---
     if st.session_state.awaiting_spa_booking or is_spa_booking_request or is_spa_booking_likely:
         result = process_spa_booking(user_input)
-        # Keep the context active if validation failed, so user can try again
         if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result or "needs a date" in result or "needs a time" in result:
             st.session_state.awaiting_spa_booking = True
         else:
             st.session_state.awaiting_spa_booking = False
         return correction_note + result
 
-    # Spa Booking context handling (for ongoing conversations)
     if st.session_state.awaiting_spa_booking:
         st.session_state.awaiting_spa_booking = False
         result = process_spa_booking(user_input)
-        # Keep context active if validation failed
         if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result or "needs a date" in result or "needs a time" in result:
             st.session_state.awaiting_spa_booking = True
         return correction_note + result
@@ -1384,6 +1576,12 @@ def get_bot_response(user_input):
                 "Could you please specify if you are asking about <strong>Wi-Fi</strong>, <strong>Breakfast</strong>, <strong>Services</strong>, or <strong>Check-in</strong>?<br><br>"
                 "You may also dial <strong>'0'</strong> on your room phone to connect directly with the Front Desk."
             )
+        
+        if predicted_tag == "extend_booking":
+            result = process_extend_booking(user_input)
+            if "How many additional days" in result or "Please tell me the time" in result:
+                st.session_state.awaiting_extend_booking = True
+            return correction_note + result
         
         if predicted_tag == "cancel_booking":
             result = process_cancel_booking(user_input)
@@ -1719,10 +1917,13 @@ if st.session_state.page == "dashboard":
         st.markdown("""
         <div class="glass-card">
             <div style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #7A7570; margin-bottom: 8px; font-weight: 600;">📅 Stay Duration</div>
-            <div style="font-size: 20px; font-weight: 700; color: #1A1A1A;">28 Jul – 03 Aug 2026</div>
+            <div style="font-size: 20px; font-weight: 700; color: #1A1A1A;">{check_in} – {check_out}</div>
             <div style="font-size: 12px; color: #8C6B2D; margin-top: 6px; font-weight: 500;">Express Check-out @ 12:00 PM</div>
         </div>
-        """, unsafe_allow_html=True)
+        """.format(
+            check_in=st.session_state.current_stay["check_in"].strftime("%d %b %Y"),
+            check_out=st.session_state.current_stay["check_out"].strftime("%d %b %Y")
+        ), unsafe_allow_html=True)
 
     with c2:
         st.markdown("""
@@ -1828,7 +2029,7 @@ elif st.session_state.page == "chat":
                     st.markdown(assistant_html, unsafe_allow_html=True)
 
         # Chat Input Bar
-        user_prompt = st.chat_input("Type your request here (e.g., Wi-Fi, Spa, Weather, Breakfast)...")
+        user_prompt = st.chat_input("Type your request here (e.g., Wi-Fi, Spa, Weather, Breakfast, Extend Stay)...")
         if user_prompt:
             current_time = datetime.now().strftime("%I:%M %p")
             
