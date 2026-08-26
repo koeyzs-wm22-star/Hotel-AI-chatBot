@@ -292,7 +292,7 @@ if "latest_spa_booking" not in st.session_state:
 
 # Guest Email
 if "guest_email" not in st.session_state:
-    st.session_state.guest_email = "vance@example.com"
+    st.session_state.guest_email = "marcusha1220@gmail.com"
 
 # Room Stay Information
 if "current_stay" not in st.session_state:
