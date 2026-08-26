@@ -1343,7 +1343,7 @@ model = load_and_train_model()
 def process_spa_booking(user_input):
     """
     Process spa booking request with enhanced date/time validation
-    SINGLE RESPONSE ONLY
+    SINGLE RESPONSE ONLY - Original message format
     """
     # --- CHECK: If this is a weather query, handle it immediately ---
     weather_keywords = ["weather", "temperature", "forecast", "rain", "sunny", "cloudy", "degrees", "°c", "°f"]
