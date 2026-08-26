@@ -1367,13 +1367,7 @@ def process_spa_booking(user_input):
     Process spa booking request with enhanced date/time validation
     SINGLE RESPONSE ONLY - Original message format
     """
-    # --- CHECK: If this is a weather query, handle it immediately ---
-    weather_keywords = ["weather", "temperature", "forecast", "rain", "sunny", "cloudy", "degrees", "°c", "°f"]
-    if any(keyword in user_input.lower() for keyword in weather_keywords):
-        weather_res = get_realtime_weather()
-        return weather_res["weather_response"] + weather_res["attraction_response"]
-    
-    # Extract date, time, and service from user input
+# Extract date, time, and service from user input
     date_str, time_str, service, error = extract_date_time_from_text(user_input)
     
     # If there's an error in extraction
@@ -1550,46 +1544,65 @@ def get_bot_response(user_input):
     if not cleaned_input or not cleaned_input.strip():
         return "Greetings! How may I assist your stay at The Grand Apex today?"
 
-    # --- NEW: Check for date/time pattern FIRST (before weather) ---
-    # Check for date patterns like 31/8/2026, 20-8-2026, etc.
+    # ==========================================
+    # SPA BOOKING DATE + TIME DETECTION
+    # ==========================================
+    # IMPORTANT:
+    # Use corrected_input instead of cleaned_input here.
+    # clean_text() removes "/" and "-" from dates.
+    # Example: 31/8/2026 9pm must remain unchanged.
+    booking_text = corrected_input.lower().strip()
+
     date_patterns = [
-        r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}',  # 31/8/2026 or 20-8-2026
-        r'\d{1,2}\s+[a-zA-Z]{3,}\s+\d{4}',  # 20 Aug 2026
-        r'\b(today|todays|tomorrow|tmr|tomorow|yesterday|yest|yday|day after tomorrow|next week)\b',
+        r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b',
+        r'\b\d{1,2}[.]\d{1,2}[.]\d{2,4}\b',
+        r'\b\d{1,2}\s+(?:jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|september|oct|october|nov|november|dec|december)\s+\d{4}\b',
+        r'\b(?:today|todays|tomorrow|tmr|tomorow|yesterday|yest|yday|day after tomorrow|next week)\b'
     ]
-    
-    # Check for time patterns
+
     time_patterns = [
-        r'\d{1,2}:\d{2}\s*(?:am|pm)?',  # 2:30 PM or 14:30
-        r'\d{1,2}\s*(?:am|pm)\s*(?:o\'clock)?',  # 2 PM or 2pm
-        r'\b(noon|midday|midnight)\b',
-        r'\d{1,2}\s*(?:am|pm)',  # 10am, 2pm
-        r'\d{1,2}\s*(?:o\'clock)',  # 2 o'clock
-        r'\d{1,2}\s*(?:in the)?\s*(morning|afternoon|evening|night)',
-        r'\d{1,2}(?:am|pm)',  # 9pm, 10am
+        r'\b\d{1,2}:\d{2}\s*(?:am|pm)?\b',
+        r'\b\d{1,2}\s*(?:am|pm)\b',
+        r'\b(?:noon|midday|midnight)\b',
+        r'\b\d{1,2}\s*o\'clock\b',
+        r'\b\d{1,2}\s+(?:in the\s+)?(?:morning|afternoon|evening|night)\b'
     ]
-    
-    has_date = any(re.search(pattern, cleaned_input, re.IGNORECASE) for pattern in date_patterns)
-    has_time = any(re.search(pattern, cleaned_input, re.IGNORECASE) for pattern in time_patterns)
-    
-    # Also check for standalone numbers that could be hours
-    if not has_time:
-        numbers = re.findall(r'\b([1-9]|1[0-2])\b', cleaned_input)
-        if numbers:
-            has_time = True
-    
+
+    has_date = any(
+        re.search(pattern, booking_text, re.IGNORECASE)
+        for pattern in date_patterns
+    )
+
+    has_time = any(
+        re.search(pattern, booking_text, re.IGNORECASE)
+        for pattern in time_patterns
+    )
+
+    # Do NOT treat standalone numbers as time.
+    # Otherwise 31/8/2026 can be mistaken for an hour.
     is_spa_booking_likely = has_date and has_time
-    
-    # --- NEW: If it looks like a spa booking (has date and time), handle it FIRST ---
+
+    # Date + time ALWAYS goes to spa booking first.
     if is_spa_booking_likely:
-        result = process_spa_booking(user_input)
-        if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result or "needs a date" in result or "needs a time" in result:
+        result = process_spa_booking(corrected_input)
+
+        if any(keyword in result.lower() for keyword in [
+            "invalid",
+            "too early",
+            "too late",
+            "already booked",
+            "unavailable",
+            "need a date",
+            "need a time",
+            "couldn't understand"
+        ]):
             st.session_state.awaiting_spa_booking = True
         else:
             st.session_state.awaiting_spa_booking = False
+
         return correction_note + result
 
-    # --- Check if this is a weather query (ONLY after checking for spa booking) ---
+    # --- WEATHER: reached only when input is NOT a spa date + time booking ---
     weather_keywords = [
         "weather", "temperature", "forecast", "rain", "sunny", "cloudy", 
         "hot", "cold", "warm", "humid", "degrees", "°c", "°f",
