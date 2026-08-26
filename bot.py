@@ -23,15 +23,14 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 # --- EMAIL CONFIGURATION ---
-# METHOD 1: Using Gmail with App Password
 # To get App Password: Google Account → Security → 2-Step Verification → App Passwords
 EMAIL_CONFIG = {
     "smtp_server": "smtp.gmail.com",
     "smtp_port": 587,
-    "sender_email": "marcusha1220@gmail.com",  # CHANGE THIS to your email
-    "sender_password": "ssgc ddku aqvv dpiz",   # CHANGE THIS (16-character App Password)
+    "sender_email": "marcusha1220@gmail.com",  # Your Gmail
+    "sender_password": "ssgc ddku aqvv dpiz",   # Your App Password
     "sender_name": "The Grand Apex Resort & Spa",
-    "use_smtp": True  # Set to True for Gmail/Outlook, False for Brevo API
+    "use_smtp": True
 }
 
 def get_email_html(booking_details, guest_name):
@@ -225,7 +224,190 @@ def get_email_html(booking_details, guest_name):
     </html>
     """
 
-def send_booking_confirmation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email="vance@example.com"):
+def get_cancellation_email_html(booking_details, guest_name):
+    """
+    Generate HTML email content for booking cancellation
+    """
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Booking Cancellation</title>
+        <style>
+            body {{
+                font-family: 'Georgia', 'Times New Roman', serif;
+                background-color: #FAF8F5;
+                margin: 0;
+                padding: 20px;
+                color: #1A1A1A;
+            }}
+            .container {{
+                max-width: 600px;
+                margin: 0 auto;
+                background: #FFFFFF;
+                border-radius: 16px;
+                border: 1px solid #C5A059;
+                box-shadow: 0 8px 30px rgba(197, 160, 89, 0.15);
+                overflow: hidden;
+            }}
+            .header {{
+                background: linear-gradient(135deg, #8C6B2D 0%, #C5A059 100%);
+                padding: 30px 20px;
+                text-align: center;
+                color: white;
+            }}
+            .header h1 {{
+                margin: 0;
+                font-size: 28px;
+                font-weight: 700;
+                letter-spacing: 2px;
+                font-family: 'Georgia', serif;
+            }}
+            .header p {{
+                margin: 8px 0 0 0;
+                font-size: 14px;
+                opacity: 0.9;
+                letter-spacing: 1px;
+            }}
+            .content {{
+                padding: 30px 25px;
+            }}
+            .cancellation-box {{
+                background: #FFF3E0;
+                padding: 20px;
+                border-radius: 12px;
+                margin: 20px 0;
+                border-left: 4px solid #E65100;
+            }}
+            .cancellation-box p {{
+                margin: 8px 0;
+                font-size: 15px;
+            }}
+            .cancellation-box strong {{
+                color: #BF360C;
+            }}
+            .icon {{
+                font-size: 18px;
+            }}
+            .divider {{
+                border: none;
+                border-top: 2px dashed #E8E0D8;
+                margin: 25px 0;
+            }}
+            .footer {{
+                background: #FAF8F5;
+                padding: 20px 25px;
+                text-align: center;
+                font-size: 12px;
+                color: #7A7570;
+                border-top: 1px solid #E8E0D8;
+            }}
+            .footer a {{
+                color: #8C6B2D;
+                text-decoration: none;
+            }}
+            .badge-cancel {{
+                display: inline-block;
+                background: #E65100;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 600;
+                margin-left: 8px;
+            }}
+            .info-box {{
+                background: #E3F2FD;
+                padding: 15px 20px;
+                border-radius: 8px;
+                border-left: 4px solid #1565C0;
+                margin: 20px 0;
+            }}
+            .info-box ul {{
+                margin: 8px 0;
+                padding-left: 20px;
+            }}
+            .info-box li {{
+                margin: 5px 0;
+            }}
+            @media only screen and (max-width: 480px) {{
+                .container {{
+                    border-radius: 0;
+                }}
+                .content {{
+                    padding: 20px 15px;
+                }}
+                .header h1 {{
+                    font-size: 22px;
+                }}
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🏨 The Grand Apex</h1>
+                <p>Executive VIP Concierge</p>
+            </div>
+            
+            <div class="content">
+                <h2 style="color: #E65100; margin-top: 0;">❌ Booking Cancelled</h2>
+                
+                <p>Dear <strong>{guest_name}</strong>,</p>
+                
+                <p>Your spa booking at <strong>The Grand Apex Resort & Spa</strong> has been successfully cancelled.</p>
+                
+                <div class="cancellation-box">
+                    <h3 style="margin-top: 0; color: #BF360C;">📋 Cancelled Booking Details</h3>
+                    <p><span class="icon">📅</span> <strong>Date:</strong> {booking_details['date']}</p>
+                    <p><span class="icon">🕐</span> <strong>Time:</strong> {booking_details['time']}</p>
+                    <p><span class="icon">💆</span> <strong>Service:</strong> {booking_details['service']}</p>
+                    <p><span class="icon">⏱️</span> <strong>Duration:</strong> {booking_details['duration']} minutes</p>
+                    <p><span class="icon">📍</span> <strong>Location:</strong> Apex Executive Spa, 5th Floor</p>
+                    <p><span class="icon">👤</span> <strong>Guest:</strong> {guest_name}</p>
+                    <p style="margin-top: 10px; color: #E65100; font-weight: 600;">Status: <span style="color: #E65100;">❌ CANCELLED</span></p>
+                </div>
+                
+                <div class="info-box">
+                    <p style="font-weight: 600; margin-top: 0; color: #1565C0;">💡 What would you like to do next?</p>
+                    <ul>
+                        <li>Make a new booking at a different time</li>
+                        <li>Check your other bookings</li>
+                        <li>Contact our Concierge Desk at <strong>Ext '0'</strong> for assistance</li>
+                    </ul>
+                </div>
+                
+                <hr class="divider">
+                
+                <p style="margin-top: 20px; font-style: italic; color: #555;">
+                    "We hope to serve you again soon."
+                </p>
+                
+                <p style="margin-top: 25px;">
+                    Warm regards,<br>
+                    <strong style="color: #8C6B2D; font-size: 16px;">The Grand Apex Concierge Team</strong>
+                </p>
+            </div>
+            
+            <div class="footer">
+                <p>
+                    <strong>The Grand Apex Resort & Spa</strong><br>
+                    Suite 1808 | Kuala Lumpur | Malaysia<br>
+                    <a href="tel:0">📞 Extension '0'</a> | 
+                    <a href="#">🌐 www.grandapex.com</a>
+                </p>
+                <p style="margin-top: 10px; font-size: 11px;">
+                    This is an automated cancellation confirmation. Please do not reply to this email.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+def send_booking_confirmation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email="marcusha1220@gmail.com"):
     """
     Send booking confirmation email using SMTP
     """
@@ -252,6 +434,34 @@ def send_booking_confirmation_email(booking_details, guest_name="Mr. Alexander V
     
     except Exception as e:
         return False, f"⚠️ Email could not be sent: {str(e)}"
+
+def send_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email="marcusha1220@gmail.com"):
+    """
+    Send booking cancellation email to customer
+    """
+    try:
+        # Create email
+        msg = MIMEMultipart('alternative')
+        msg['From'] = f"{EMAIL_CONFIG['sender_name']} <{EMAIL_CONFIG['sender_email']}>"
+        msg['To'] = guest_email
+        msg['Subject'] = f"❌ The Grand Apex - Spa Booking Cancelled - {booking_details['date']}"
+        
+        # HTML content for cancellation
+        html_content = get_cancellation_email_html(booking_details, guest_name)
+        
+        # Attach HTML
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        # Send email
+        with smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port']) as server:
+            server.starttls(context=ssl.create_default_context())
+            server.login(EMAIL_CONFIG['sender_email'], EMAIL_CONFIG['sender_password'])
+            server.send_message(msg)
+        
+        return True, "📧 Cancellation confirmation email sent to your registered email address!"
+    
+    except Exception as e:
+        return False, f"⚠️ Cancellation email could not be sent: {str(e)}"
 
 # ==========================================
 # 1. Page Config & Session State Setup
@@ -857,8 +1067,7 @@ def view_my_bookings(guest_name="Mr. Alexander Vance"):
 
 def cancel_spa_booking(time_str, guest_name="Mr. Alexander Vance"):
     """
-    Cancel a spa booking by time
-    Returns (success, message)
+    Cancel a spa booking by time with email confirmation
     """
     # Parse the time
     hour, minute, error = parse_time_from_string(time_str)
@@ -899,11 +1108,37 @@ def cancel_spa_booking(time_str, guest_name="Mr. Alexander Vance"):
     if not booking_key:
         return False, f"❌ I couldn't find a booking at '{time_str}'. Please check your bookings by saying 'view my bookings'."
     
-    # Cancel the booking
+    # Store booking details for email
     dt = datetime.strptime(booking_key, "%Y-%m-%d %H:%M")
+    booking_details = {
+        'date': dt.strftime('%A, %B %d, %Y'),
+        'time': dt.strftime('%I:%M %p'),
+        'service': booking_to_cancel['service'],
+        'duration': booking_to_cancel['duration']
+    }
+    
+    # Cancel the booking
     del st.session_state.spa_bookings[booking_key]
     
-    return True, f"✅ <strong>Booking Cancelled Successfully!</strong><br><br>📅 <strong>Date:</strong> {dt.strftime('%A, %B %d, %Y')}<br>🕐 <strong>Time:</strong> {dt.strftime('%I:%M %p')}<br>💆 <strong>Service:</strong> {booking_to_cancel['service']}<br><br>Your booking has been cancelled. If you'd like to make a new booking, just let me know!"
+    # --- SEND CANCELLATION EMAIL ---
+    try:
+        email_sent, email_message = send_cancellation_email(
+            booking_details, 
+            guest_name, 
+            st.session_state.guest_email
+        )
+        email_status = email_message
+    except Exception as e:
+        email_status = "ℹ️ Cancellation email could not be sent. Please contact the front desk for confirmation."
+    
+    return True, f"""
+✅ <strong>Booking Cancelled Successfully!</strong><br><br>
+📅 <strong>Date:</strong> {dt.strftime('%A, %B %d, %Y')}<br>
+🕐 <strong>Time:</strong> {dt.strftime('%I:%M %p')}<br>
+💆 <strong>Service:</strong> {booking_to_cancel['service']}<br><br>
+Your booking has been cancelled.<br><br>
+{email_status}
+"""
 
 
 # ==========================================
@@ -1636,7 +1871,6 @@ model = load_and_train_model()
 def process_spa_booking(user_input):
     """
     Process spa booking request with enhanced date/time validation
-    SINGLE RESPONSE ONLY - Original message format
     """
     # Extract date, time, and service from user input
     date_str, time_str, service, error = extract_date_time_from_text(user_input)
@@ -1818,7 +2052,6 @@ def get_bot_response(user_input):
     # ==========================================
     # SPA BOOKING DATE + TIME DETECTION
     # ==========================================
-    # IMPORTANT:
     # Use corrected_input instead of cleaned_input here.
     # clean_text() removes "/" and "-" from dates.
     # Example: 31/8/2026 9pm must remain unchanged.
