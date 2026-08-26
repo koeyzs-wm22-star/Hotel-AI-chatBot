@@ -34,14 +34,6 @@ EMAIL_CONFIG = {
     "use_smtp": True  # Set to True for Gmail/Outlook, False for Brevo API
 }
 
-# METHOD 2: Using Brevo (Sendinblue) - Uncomment to use
-# EMAIL_CONFIG = {
-#     "api_key": "xkeysib-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-#     "sender_email": "concierge@grandapex.com",
-#     "sender_name": "The Grand Apex Resort & Spa",
-#     "use_smtp": False
-# }
-
 def get_email_html(booking_details, guest_name):
     """
     Generate HTML email content for booking confirmation
