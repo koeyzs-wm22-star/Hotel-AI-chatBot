@@ -176,6 +176,7 @@ def parse_date_from_string(date_str):
     Parse date from various formats including:
     - 20/8/2026
     - 20-8-2026
+    - 31/8/2026
     - 20 August 2026
     - today
     - tomorrow
@@ -200,7 +201,7 @@ def parse_date_from_string(date_str):
     # Try different date formats
     date_formats = [
         ("%Y-%m-%d", False),      # 2026-07-28
-        ("%d/%m/%Y", False),      # 28/07/2026
+        ("%d/%m/%Y", False),      # 28/07/2026 or 31/08/2026
         ("%d-%m-%Y", False),      # 28-07-2026
         ("%d.%m.%Y", False),      # 28.07.2026
         ("%d %B %Y", False),      # 28 July 2026
@@ -211,6 +212,7 @@ def parse_date_from_string(date_str):
         ("%d/%m/%y", False),      # 28/07/26
         ("%d-%m-%y", False),      # 28-07-26
         ("%d.%m.%y", False),      # 28.07.26
+        ("%d-%b-%y", False),      # 28-Jul-26
     ]
     
     # Remove ordinal indicators (st, nd, rd, th)
@@ -243,7 +245,7 @@ def parse_date_from_string(date_str):
             except ValueError:
                 pass
     
-    return None, "I couldn't understand the date format. Please use formats like '20/8/2026', '20-8-2026', 'today', 'tomorrow', or 'yesterday'."
+    return None, "I couldn't understand the date format. Please use formats like '31/8/2026', '20-8-2026', 'today', 'tomorrow', or 'yesterday'."
 
 def parse_time_from_string(time_str):
     """
@@ -254,6 +256,8 @@ def parse_time_from_string(time_str):
     - 2
     - 2:30pm
     - 1430
+    - 9pm
+    - 9 PM
     Returns (hour, minute, error_message)
     """
     time_str = time_str.strip().lower()
@@ -266,6 +270,20 @@ def parse_time_from_string(time_str):
         return 12, 0, None
     elif time_str in ["midnight", "12 midnight"]:
         return 0, 0, None
+    
+    # Check if it's a standalone number with AM/PM (like "9pm" or "9 am")
+    match = re.match(r'^(\d{1,2})\s*(am|pm)$', time_str)
+    if match:
+        hour = int(match.group(1))
+        ampm = match.group(2)
+        if ampm == 'pm' and hour < 12:
+            hour += 12
+        elif ampm == 'am' and hour == 12:
+            hour = 0
+        if 0 <= hour <= 23:
+            return hour, 0, None
+        else:
+            return None, None, f"Invalid hour: {hour}. Please use a number between 1 and 12."
     
     # Check if it's a standalone number (like "2")
     if re.match(r'^\d{1,2}$', time_str):
@@ -319,7 +337,7 @@ def parse_time_from_string(time_str):
             except ValueError:
                 pass
     
-    return None, None, "I couldn't understand the time format. Please use formats like '2:30 PM', '14:30', or '2 PM'."
+    return None, None, "I couldn't understand the time format. Please use formats like '2:30 PM', '14:30', '9pm', or '2 PM'."
 
 def extract_date_time_from_text(text):
     """
@@ -349,9 +367,9 @@ def extract_date_time_from_text(text):
             service = value
             break
     
-    # Extract date
+    # Extract date - SUPPORT 31/8/2026 format
     date_patterns = [
-        r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',  # 20/8/2026 or 20-8-2026
+        r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',  # 20/8/2026 or 20-8-2026 or 31/8/2026
         r'(\d{1,2}\s+[a-zA-Z]{3,}\s+\d{4})',  # 20 Aug 2026
         r'(\d{1,2}\s+[a-zA-Z]+\s+\d{4})',     # 20 August 2026
         r'\b(today|todays|tomorrow|tmr|tomorow|yesterday|yest|yday|day after tomorrow|next week)\b',
@@ -376,22 +394,26 @@ def extract_date_time_from_text(text):
         elif "next week" in text_lower:
             date_str = "next week"
     
-    # Extract time
+    # Extract time - SUPPORT 9pm format
     time_patterns = [
         r'(\d{1,2}:\d{2}\s*(?:am|pm)?)',  # 2:30 PM or 14:30
-        r'(\d{1,2}\s*(?:am|pm)\s*(?:o\'clock)?)',  # 2 PM or 2pm
+        r'(\d{1,2}\s*(?:am|pm)\s*(?:o\'clock)?)',  # 2 PM or 2pm or 9pm
         r'(\d{1,2}\s*o\'clock)',  # 2 o'clock
         r'\b(noon|midday|midnight)\b',
         r'(\d{1,2})\s*(?:in the)?\s*(morning|afternoon|evening|night)',
+        r'(\d{1,2})(am|pm)',  # 9pm or 10am
     ]
     
     for pattern in time_patterns:
         match = re.search(pattern, text_lower, re.IGNORECASE)
         if match:
             time_str = match.group(1) if match.groups() else match.group(0)
+            # If we captured "9pm" with the pattern, make sure it's preserved
+            if match.groups() and len(match.groups()) > 1:
+                time_str = match.group(1) + match.group(2)
             break
     
-    # If no time found, look for a standalone number
+    # If no time found, look for a standalone number (like "2")
     if not time_str:
         numbers = re.findall(r'\b(\d{1,2})\b', text_lower)
         for num in numbers:
@@ -1193,7 +1215,7 @@ Located on Floor 5, our Spa offers signature aromatherapy, hot stone therapy, an
     "ask_spa_booking": """
 📅 <strong>Spa Reservation Request</strong><br><br>
 I would be delighted to arrange this for you, Mr. Vance! To secure your preferred time, please specify:<br>
-1. <strong>Your preferred date & time</strong> (e.g., Today at 15:00 PM or 20/8/2026 at 14:30)<br>
+1. <strong>Your preferred date & time</strong> (e.g., Today at 15:00 PM or 31/8/2026 at 9pm)<br>
 2. <strong>Service type</strong> (e.g., Aromatherapy Massage, Deep Tissue, Hot Stone, Facial)<br><br>
 <i>💡 I'll check availability and confirm your booking!</i><br><br>
 Alternatively, you may dial <strong>Ext '802'</strong> to speak directly with our Spa Receptionist for immediate confirmation.
@@ -1360,11 +1382,11 @@ def process_spa_booking(user_input):
     
     # Check if date was provided
     if not date_str:
-        return "📅 I need a date for your spa booking. Please tell me the date (e.g., '20/8/2026', 'today', or 'tomorrow') and I'll check availability!"
+        return "📅 I need a date for your spa booking. Please tell me the date (e.g., '31/8/2026', 'today', or 'tomorrow') and I'll check availability!"
     
     # Check if time was provided
     if not time_str:
-        return "🕐 I need a time for your spa booking. Please tell me the time (e.g., '2:30 PM', '14:30', or '2 PM') and I'll check availability!"
+        return "🕐 I need a time for your spa booking. Please tell me the time (e.g., '2:30 PM', '14:30', '9pm', or '2 PM') and I'll check availability!"
     
     # Parse the date
     date_obj, date_error = parse_date_from_string(date_str)
@@ -1391,7 +1413,7 @@ I'm sorry, but <strong>{booking_datetime.strftime('%A, %B %d, %Y')}</strong> is 
 📅 <strong>Today is:</strong> {now.strftime('%A, %B %d, %Y')}<br><br>
 💡 <i>Please select a future date for your spa appointment. You can simply type the corrected date and time, like:</i><br>
 • "tomorrow at 2 PM"<br>
-• "20/8/2026 at 14:30"<br>
+• "31/8/2026 at 9pm"<br>
 • "next week Friday at 3 PM"
 """
     
@@ -1480,6 +1502,7 @@ def process_cancel_booking(user_input):
         r'at\s+(\d{1,2})\s*(?:am|pm)?',
         r'for\s+(\d{1,2})\s*(?:am|pm)?',
         r'(\d{1,2})\s*(?:am|pm)\s*(?:booking|appointment)?',
+        r'(\d{1,2})(am|pm)',  # 9pm or 10am
     ]
     
     time_str = None
@@ -1488,12 +1511,11 @@ def process_cancel_booking(user_input):
         if match:
             if len(match.groups()) == 2:
                 hour = int(match.group(1))
-                minute = int(match.group(2))
                 if "pm" in user_input.lower() and hour < 12:
                     hour += 12
                 elif "am" in user_input.lower() and hour == 12:
                     hour = 0
-                time_str = f"{hour:02d}:{minute:02d}"
+                time_str = f"{hour:02d}:00"
             else:
                 hour = int(match.group(1))
                 if "pm" in user_input.lower() and hour < 12:
@@ -1551,8 +1573,12 @@ def get_bot_response(user_input):
     spa_keywords = ["spa", "massage", "facial", "hot stone", "aromatherapy", "预约spa", "订spa", "spa预约"]
     is_spa_related = any(keyword in cleaned_input.lower() for keyword in spa_keywords)
     
-    # If user said "spa booking" or related, go to spa booking
-    if is_spa_booking_phrase or is_spa_related:
+    # Check for date/time pattern (like "31/8/2026 9pm")
+    date_time_pattern = r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\s*\d{1,2}\s*(?:am|pm)'
+    has_date_time = re.search(date_time_pattern, cleaned_input, re.IGNORECASE) is not None
+    
+    # If user said "spa booking" or related, or has date/time pattern
+    if is_spa_booking_phrase or is_spa_related or has_date_time:
         result = process_spa_booking(user_input)
         if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result or "needs a date" in result or "needs a time" in result:
             st.session_state.awaiting_spa_booking = True
@@ -1644,6 +1670,7 @@ def get_bot_response(user_input):
         r'\d{1,2}\s*(?:am|pm)',
         r'\d{1,2}\s*(?:o\'clock)',
         r'\d{1,2}\s*(?:in the)?\s*(morning|afternoon|evening|night)',
+        r'\d{1,2}(?:am|pm)',  # 9pm, 10am
     ]
     
     has_date = any(keyword in cleaned_input.lower() for keyword in date_keywords)
