@@ -1,9 +1,3 @@
-Here's the updated bot.py with:
-
-1. Spa booking only has ONE response message (not multiple)
-2. "spa booking" is detected even without date/time
-
-```python
 import json
 import os
 import re
