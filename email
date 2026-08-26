@@ -15,6 +15,253 @@ from collections import Counter
 from datetime import datetime, timedelta
 
 # ==========================================
+# EMAIL FUNCTIONALITY (No Login Required)
+# ==========================================
+import smtplib
+import ssl
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# --- EMAIL CONFIGURATION ---
+# METHOD 1: Using Gmail with App Password
+# To get App Password: Google Account → Security → 2-Step Verification → App Passwords
+EMAIL_CONFIG = {
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "sender_email": "marcusha1220@gmail.com",  # CHANGE THIS to your email
+    "sender_password": "ssgc ddku aqvv dpiz",   # CHANGE THIS (16-character App Password)
+    "sender_name": "The Grand Apex Resort & Spa",
+    "use_smtp": True  # Set to True for Gmail/Outlook, False for Brevo API
+}
+
+# METHOD 2: Using Brevo (Sendinblue) - Uncomment to use
+# EMAIL_CONFIG = {
+#     "api_key": "xkeysib-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+#     "sender_email": "concierge@grandapex.com",
+#     "sender_name": "The Grand Apex Resort & Spa",
+#     "use_smtp": False
+# }
+
+def get_email_html(booking_details, guest_name):
+    """
+    Generate HTML email content for booking confirmation
+    """
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Booking Confirmation</title>
+        <style>
+            body {{
+                font-family: 'Georgia', 'Times New Roman', serif;
+                background-color: #FAF8F5;
+                margin: 0;
+                padding: 20px;
+                color: #1A1A1A;
+            }}
+            .container {{
+                max-width: 600px;
+                margin: 0 auto;
+                background: #FFFFFF;
+                border-radius: 16px;
+                border: 1px solid #C5A059;
+                box-shadow: 0 8px 30px rgba(197, 160, 89, 0.15);
+                overflow: hidden;
+            }}
+            .header {{
+                background: linear-gradient(135deg, #8C6B2D 0%, #C5A059 100%);
+                padding: 30px 20px;
+                text-align: center;
+                color: white;
+            }}
+            .header h1 {{
+                margin: 0;
+                font-size: 28px;
+                font-weight: 700;
+                letter-spacing: 2px;
+                font-family: 'Georgia', serif;
+            }}
+            .header p {{
+                margin: 8px 0 0 0;
+                font-size: 14px;
+                opacity: 0.9;
+                letter-spacing: 1px;
+            }}
+            .content {{
+                padding: 30px 25px;
+            }}
+            .booking-box {{
+                background: #FAF8F5;
+                padding: 20px;
+                border-radius: 12px;
+                margin: 20px 0;
+                border-left: 4px solid #C5A059;
+            }}
+            .booking-box p {{
+                margin: 8px 0;
+                font-size: 15px;
+            }}
+            .booking-box strong {{
+                color: #8C6B2D;
+            }}
+            .icon {{
+                font-size: 18px;
+            }}
+            .divider {{
+                border: none;
+                border-top: 2px dashed #E8E0D8;
+                margin: 25px 0;
+            }}
+            .footer {{
+                background: #FAF8F5;
+                padding: 20px 25px;
+                text-align: center;
+                font-size: 12px;
+                color: #7A7570;
+                border-top: 1px solid #E8E0D8;
+            }}
+            .footer a {{
+                color: #8C6B2D;
+                text-decoration: none;
+            }}
+            .badge {{
+                display: inline-block;
+                background: #4CAF50;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 600;
+                margin-left: 8px;
+            }}
+            .important {{
+                background: #FFF8E1;
+                padding: 15px 20px;
+                border-radius: 8px;
+                border-left: 4px solid #FFB300;
+                margin: 20px 0;
+            }}
+            .important ul {{
+                margin: 8px 0;
+                padding-left: 20px;
+            }}
+            .important li {{
+                margin: 5px 0;
+            }}
+            @media only screen and (max-width: 480px) {{
+                .container {{
+                    border-radius: 0;
+                }}
+                .content {{
+                    padding: 20px 15px;
+                }}
+                .header h1 {{
+                    font-size: 22px;
+                }}
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🏨 The Grand Apex</h1>
+                <p>Executive VIP Concierge</p>
+            </div>
+            
+            <div class="content">
+                <h2 style="color: #8C6B2D; margin-top: 0;">✅ Booking Confirmed!</h2>
+                
+                <p>Dear <strong>{guest_name}</strong>,</p>
+                
+                <p>We are delighted to confirm your spa booking at <strong>The Grand Apex Resort & Spa</strong>. 
+                Your appointment has been successfully secured.</p>
+                
+                <div class="booking-box">
+                    <h3 style="margin-top: 0; color: #8C6B2D;">📋 Booking Details</h3>
+                    <p><span class="icon">📅</span> <strong>Date:</strong> {booking_details['date']}</p>
+                    <p><span class="icon">🕐</span> <strong>Time:</strong> {booking_details['time']}</p>
+                    <p><span class="icon">💆</span> <strong>Service:</strong> {booking_details['service']}</p>
+                    <p><span class="icon">⏱️</span> <strong>Duration:</strong> {booking_details['duration']} minutes</p>
+                    <p><span class="icon">📍</span> <strong>Location:</strong> Apex Executive Spa, 5th Floor</p>
+                    <p><span class="icon">👤</span> <strong>Guest:</strong> {guest_name}</p>
+                </div>
+                
+                <div class="important">
+                    <p style="font-weight: 600; margin-top: 0; color: #E65100;">⚠️ Important Reminders</p>
+                    <ul>
+                        <li>Please arrive <strong>15 minutes early</strong> for your appointment</li>
+                        <li>Bring your room key for verification</li>
+                        <li>Complimentary robes and slippers will be provided</li>
+                        <li>Please inform us of any medical conditions or allergies</li>
+                    </ul>
+                </div>
+                
+                <hr class="divider">
+                
+                <div style="background: #E8F5E9; padding: 12px 16px; border-radius: 8px; margin: 15px 0;">
+                    <p style="margin: 0; font-size: 14px;">
+                        💡 <strong>Need to make changes?</strong> 
+                        Dial <strong>Ext '802'</strong> or contact our Concierge Desk at <strong>Ext '0'</strong>
+                    </p>
+                </div>
+                
+                <p style="margin-top: 20px; font-style: italic; color: #555;">
+                    "We look forward to providing you with an exceptional wellness experience."
+                </p>
+                
+                <p style="margin-top: 25px;">
+                    Warm regards,<br>
+                    <strong style="color: #8C6B2D; font-size: 16px;">The Grand Apex Concierge Team</strong>
+                </p>
+            </div>
+            
+            <div class="footer">
+                <p>
+                    <strong>The Grand Apex Resort & Spa</strong><br>
+                    Suite 1808 | Kuala Lumpur | Malaysia<br>
+                    <a href="tel:0">📞 Extension '0'</a> | 
+                    <a href="#">🌐 www.grandapex.com</a>
+                </p>
+                <p style="margin-top: 10px; font-size: 11px;">
+                    This is an automated confirmation. Please do not reply to this email.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+def send_booking_confirmation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email="vance@example.com"):
+    """
+    Send booking confirmation email using SMTP
+    """
+    try:
+        # Create email
+        msg = MIMEMultipart('alternative')
+        msg['From'] = f"{EMAIL_CONFIG['sender_name']} <{EMAIL_CONFIG['sender_email']}>"
+        msg['To'] = guest_email
+        msg['Subject'] = f"✅ The Grand Apex - Spa Booking Confirmation - {booking_details['date']}"
+        
+        # HTML content
+        html_content = get_email_html(booking_details, guest_name)
+        
+        # Attach HTML
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        # Send email
+        with smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port']) as server:
+            server.starttls(context=ssl.create_default_context())
+            server.login(EMAIL_CONFIG['sender_email'], EMAIL_CONFIG['sender_password'])
+            server.send_message(msg)
+        
+        return True, "📧 Booking confirmation email sent to your registered email address!"
+    
+    except Exception as e:
+        return False, f"⚠️ Email could not be sent: {str(e)}"
+
+# ==========================================
 # 1. Page Config & Session State Setup
 # ==========================================
 st.set_page_config(
@@ -50,6 +297,10 @@ if "awaiting_extend_booking" not in st.session_state:
 
 if "latest_spa_booking" not in st.session_state:
     st.session_state.latest_spa_booking = None
+
+# Guest Email
+if "guest_email" not in st.session_state:
+    st.session_state.guest_email = "vance@example.com"
 
 # Room Stay Information
 if "current_stay" not in st.session_state:
@@ -532,8 +783,7 @@ def get_available_spa_slots(date_obj=None, duration_minutes=60):
 
 def book_spa_slot(guest_name, service, booking_datetime, duration_minutes=60):
     """
-    Book a spa slot
-    Returns (success, message)
+    Book a spa slot with email confirmation
     """
     if booking_datetime < datetime.now():
         return False, "❌ Booking date and time cannot be in the past. Please select a future date and time."
@@ -557,7 +807,36 @@ def book_spa_slot(guest_name, service, booking_datetime, duration_minutes=60):
         "duration": duration_minutes
     }
     
-    return True, f"✅ <strong>Booking Confirmed!</strong><br><br>📅 <strong>Date:</strong> {booking_datetime.strftime('%A, %B %d, %Y')}<br>🕐 <strong>Time:</strong> {booking_datetime.strftime('%I:%M %p')}<br>💆 <strong>Service:</strong> {service}<br>👤 <strong>Guest:</strong> {guest_name}<br><br>Please arrive 15 minutes early for your appointment."
+    # --- SEND EMAIL CONFIRMATION ---
+    booking_details = {
+        'date': booking_datetime.strftime('%A, %B %d, %Y'),
+        'time': booking_datetime.strftime('%I:%M %p'),
+        'service': service,
+        'duration': duration_minutes
+    }
+    
+    # Send email
+    try:
+        email_sent, email_message = send_booking_confirmation_email(
+            booking_details, 
+            guest_name, 
+            st.session_state.guest_email
+        )
+        email_status = email_message
+    except Exception as e:
+        email_status = "ℹ️ Email notification: Please provide your email address for future confirmations."
+    
+    confirmation_message = f"""
+✅ <strong>Booking Confirmed!</strong><br><br>
+📅 <strong>Date:</strong> {booking_datetime.strftime('%A, %B %d, %Y')}<br>
+🕐 <strong>Time:</strong> {booking_datetime.strftime('%I:%M %p')}<br>
+💆 <strong>Service:</strong> {service}<br>
+👤 <strong>Guest:</strong> {guest_name}<br><br>
+Please arrive 15 minutes early for your appointment.<br><br>
+{email_status}
+"""
+    
+    return True, confirmation_message
 
 
 # ==========================================
@@ -1367,7 +1646,7 @@ def process_spa_booking(user_input):
     Process spa booking request with enhanced date/time validation
     SINGLE RESPONSE ONLY - Original message format
     """
-# Extract date, time, and service from user input
+    # Extract date, time, and service from user input
     date_str, time_str, service, error = extract_date_time_from_text(user_input)
     
     # If there's an error in extraction
@@ -2141,6 +2420,13 @@ elif st.session_state.page == "chat":
                     st.write(f"• {dt.strftime('%b %d, %I:%M %p')} - {booking['guest_name']} ({booking['service']})")
             else:
                 st.write("No bookings yet.")
+
+        # --- Email Settings ---
+        with st.expander("📧 Email Settings"):
+            st.text_input("Your Email Address", value=st.session_state.guest_email, key="guest_email_input")
+            if st.button("Update Email"):
+                st.session_state.guest_email = st.session_state.guest_email_input
+                st.success(f"Email updated to: {st.session_state.guest_email}")
 
     # --- MAIN CHAT AREA ---
     with main_chat_col:
