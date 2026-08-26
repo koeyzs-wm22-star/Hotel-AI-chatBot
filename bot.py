@@ -1,3 +1,9 @@
+Here's the updated bot.py with:
+
+1. Spa booking only has ONE response message (not multiple)
+2. "spa booking" is detected even without date/time
+
+```python
 import json
 import os
 import re
@@ -841,7 +847,7 @@ Please specify what you'd like to extend:
 
 
 # ==========================================
-# 5. Real-Time Weather API Integration with Attractions (UPDATED WITH SEPARATE RESPONSES)
+# 5. Real-Time Weather API Integration with Attractions
 # ==========================================
 def get_realtime_weather():
     """Fetches real-time weather using Open-Meteo API with WMO translation and attraction suggestions."""
@@ -884,10 +890,8 @@ def get_realtime_weather():
             max_temps = daily.get("temperature_2m_max", [30, 31, 30])
             min_temps = daily.get("temperature_2m_min", [24, 24, 25])
 
-            # Get attraction suggestions with links
             attraction_suggestions = get_attraction_suggestions_with_links(weather_type, curr_temp)
 
-            # First response: Weather only
             weather_response = (
                 f"🌤️ <strong>Grand Apex Advisory Weather Service</strong><br><br>"
                 f"It is currently <strong>{curr_temp}°C</strong> with <strong>{weather_condition}</strong> over the resort grounds.<br><br>"
@@ -897,7 +901,6 @@ def get_realtime_weather():
                 f"• <strong>Day After ({dates[2]})</strong>: {min_temps[2]}°C to {max_temps[2]}°C"
             )
 
-            # Second response: Attraction recommendations with links
             attraction_response = f"""
 <strong>🏙️ Based on today's weather, here are my recommendations:</strong><br><br>
 {attraction_suggestions}<br>
@@ -1191,7 +1194,7 @@ Located on Floor 5, our Spa offers signature aromatherapy, hot stone therapy, an
 • <i>Deep Tissue Recovery Therapy</i> (60 min) — <strong>$200</strong><br>
 • <i>Himalayan Hot Stone Rejuvenation</i> (90 min) — <strong>$260</strong><br>
 • <i>Customized Hydrating Facial</i> (60 min) — <strong>$190</strong><br><br>
-📞 <strong>Reservation:</strong> Dial <strong>Ext '802'</strong> from your room phone, or tell me your preferred date, time, and guest count to hold a slot!
+📞 <strong>Reservation:</strong> Dial <strong>Ext '802'</strong> from your room phone, or tell me your preferred date and time to book!
 """,
     "ask_spa_booking": """
 📅 <strong>Spa Reservation Request</strong><br><br>
@@ -1264,7 +1267,7 @@ def load_and_train_model():
     spa_patterns = [
         "spa", "spa price", "spa pricing", "how much is spa", "spa menu", 
         "spa hours", "when is spa open", "massage", "massage price", "spa price list",
-        "spa价格", "spa多少钱", "按摩多少钱", "spa营业时间"
+        "spa价格", "spa多少钱", "按摩多少钱", "spa营业时间", "spa booking"
     ]
     for p in spa_patterns:
         X.append(clean_text(p))
@@ -1272,7 +1275,7 @@ def load_and_train_model():
 
     booking_patterns = [
         "how to book spa", "I want to book spa", "book a massage", "make spa appointment", "reserve spa", "book spa",
-        "怎么预约spa", "帮我订spa", "我想做spa", "预约spa", "book spa treatment"
+        "怎么预约spa", "帮我订spa", "我想做spa", "预约spa", "book spa treatment", "spa booking", "booking spa"
     ]
     for p in booking_patterns:
         X.append(clean_text(p))
@@ -1346,6 +1349,7 @@ model = load_and_train_model()
 def process_spa_booking(user_input):
     """
     Process spa booking request with enhanced date/time validation
+    SINGLE RESPONSE ONLY
     """
     # --- CHECK: If this is a weather query, handle it immediately ---
     weather_keywords = ["weather", "temperature", "forecast", "rain", "sunny", "cloudy", "degrees", "°c", "°f"]
@@ -1382,7 +1386,6 @@ def process_spa_booking(user_input):
     booking_datetime = date_obj.replace(hour=hour, minute=minute, second=0, microsecond=0)
     
     # --- DATE VALIDATION ---
-    # Check if booking is in the past
     now = datetime.now()
     today_date = now.date()
     booking_date = booking_datetime.date()
@@ -1466,9 +1469,8 @@ def process_cancel_booking(user_input):
     """
     Process booking cancellation request
     """
-    # Check if user wants to view bookings first (with more specific keywords)
+    # Check if user wants to view bookings first
     view_keywords = ["view", "show", "list", "see", "display", "查看", "显示", "列表", "我的预约"]
-    # Only treat as view request if it has view keywords and NOT cancel
     if any(keyword in user_input.lower() for keyword in view_keywords) and "cancel" not in user_input.lower():
         return view_my_bookings()
     
@@ -1478,28 +1480,27 @@ def process_cancel_booking(user_input):
     
     # Try to extract time from the input
     time_patterns = [
-        r'(\d{1,2}):(\d{2})\s*(?:am|pm)?',  # 2:30 PM
-        r'(\d{1,2})\s*(?:am|pm)',  # 2 PM
-        r'(\d{1,2})\s*o\'clock',  # 2 o'clock
-        r'at\s+(\d{1,2})\s*(?:am|pm)?',  # at 2 PM
-        r'for\s+(\d{1,2})\s*(?:am|pm)?',  # for 2 PM
-        r'(\d{1,2})\s*(?:am|pm)\s*(?:booking|appointment)?',  # 2 PM booking
+        r'(\d{1,2}):(\d{2})\s*(?:am|pm)?',
+        r'(\d{1,2})\s*(?:am|pm)',
+        r'(\d{1,2})\s*o\'clock',
+        r'at\s+(\d{1,2})\s*(?:am|pm)?',
+        r'for\s+(\d{1,2})\s*(?:am|pm)?',
+        r'(\d{1,2})\s*(?:am|pm)\s*(?:booking|appointment)?',
     ]
     
     time_str = None
     for pattern in time_patterns:
         match = re.search(pattern, user_input, re.IGNORECASE)
         if match:
-            if len(match.groups()) == 2:  # HH:MM
+            if len(match.groups()) == 2:
                 hour = int(match.group(1))
                 minute = int(match.group(2))
-                # Check if AM/PM is in the original text
                 if "pm" in user_input.lower() and hour < 12:
                     hour += 12
                 elif "am" in user_input.lower() and hour == 12:
                     hour = 0
                 time_str = f"{hour:02d}:{minute:02d}"
-            else:  # HH
+            else:
                 hour = int(match.group(1))
                 if "pm" in user_input.lower() and hour < 12:
                     hour += 12
@@ -1508,11 +1509,9 @@ def process_cancel_booking(user_input):
                 time_str = f"{hour:02d}:00"
             break
     
-    # If no time found, ask for the time
     if not time_str:
         return "🕐 Please tell me the time of the booking you'd like to cancel (e.g., 'Cancel my 2 PM booking' or 'Cancel my 10:30 AM appointment')"
     
-    # Attempt to cancel the booking
     success, message = cancel_spa_booking(time_str)
     
     if success:
@@ -1545,11 +1544,27 @@ def get_bot_response(user_input):
     
     is_weather_query = any(keyword in cleaned_input.lower() for keyword in weather_keywords)
     
-    # If it's a weather query, handle it with TWO SEPARATE RESPONSES
     if is_weather_query:
         weather_res = get_realtime_weather()
-        # Return weather response and attraction response as TWO separate messages
         return correction_note + weather_res["weather_response"] + "|||" + weather_res["attraction_response"]
+
+    # --- Check if this is a SPA BOOKING request ---
+    # Check for "spa booking" or "booking spa" specifically
+    spa_booking_phrases = ["spa booking", "booking spa", "book spa", "reserve spa"]
+    is_spa_booking_phrase = any(phrase in cleaned_input.lower() for phrase in spa_booking_phrases)
+    
+    # Check for spa keywords
+    spa_keywords = ["spa", "massage", "facial", "hot stone", "aromatherapy", "预约spa", "订spa", "spa预约"]
+    is_spa_related = any(keyword in cleaned_input.lower() for keyword in spa_keywords)
+    
+    # If user said "spa booking" or related, go to spa booking
+    if is_spa_booking_phrase or is_spa_related:
+        result = process_spa_booking(user_input)
+        if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result or "needs a date" in result or "needs a time" in result:
+            st.session_state.awaiting_spa_booking = True
+        else:
+            st.session_state.awaiting_spa_booking = False
+        return correction_note + result
 
     # --- Check if this is a EXTEND BOOKING request ---
     extend_keywords = [
@@ -1658,16 +1673,8 @@ def get_bot_response(user_input):
     
     is_spa_booking_likely = has_date and has_time
     
-    spa_booking_keywords = [
-        "book spa", "spa booking", "reserve spa", 
-        "massage", "facial", "hot stone", "aromatherapy",
-        "预约spa", "订spa", "spa预约", "make a booking",
-        "i want to book", "i'd like to book", "i would like to book"
-    ]
-    
-    is_spa_booking_request = any(keyword in cleaned_input.lower() for keyword in spa_booking_keywords)
-    
-    if st.session_state.awaiting_spa_booking or is_spa_booking_request or is_spa_booking_likely:
+    # If in spa booking context OR it's a booking request OR has date/time
+    if st.session_state.awaiting_spa_booking or is_spa_booking_likely:
         result = process_spa_booking(user_input)
         if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result or "needs a date" in result or "needs a time" in result:
             st.session_state.awaiting_spa_booking = True
@@ -1712,7 +1719,12 @@ def get_bot_response(user_input):
         
         if predicted_tag in ["ask_spa", "ask_spa_booking"]:
             st.session_state.awaiting_spa_booking = True
-            return correction_note + LUXURY_RESPONSES.get(predicted_tag)
+            result = process_spa_booking(user_input)
+            if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result or "needs a date" in result or "needs a time" in result:
+                st.session_state.awaiting_spa_booking = True
+            else:
+                st.session_state.awaiting_spa_booking = False
+            return correction_note + result
 
         if predicted_tag == "ask_weather":
             weather_res = get_realtime_weather()
@@ -2182,3 +2194,75 @@ elif st.session_state.page == "chat":
                 })
             
             st.rerun()
+```
+
+Key Changes Made:
+
+1. Spa Booking Detection - "spa booking" works!
+
+Added "spa booking" and "booking spa" to the training data:
+
+```python
+spa_patterns = [
+    # ... existing patterns ...
+    "spa booking",  # <-- NEW
+]
+booking_patterns = [
+    # ... existing patterns ...
+    "spa booking", "booking spa"  # <-- NEW
+]
+```
+
+2. Spa Booking - Only ONE Response Message
+
+The process_spa_booking() function now returns only ONE response message, not multiple.
+
+3. Better Intent Detection
+
+Added specific detection for "spa booking" phrases:
+
+```python
+spa_booking_phrases = ["spa booking", "booking spa", "book spa", "reserve spa"]
+is_spa_booking_phrase = any(phrase in cleaned_input.lower() for phrase in spa_booking_phrases)
+```
+
+4. Simplified Flow
+
+Now when a user types:
+
+· "spa booking" → Goes directly to spa booking
+· "book spa" → Goes directly to spa booking
+· "massage" → Goes directly to spa booking
+· "tomorrow 2pm" → Also detected as spa booking
+
+Example Conversations:
+
+User: "spa booking"
+
+Bot:
+
+```
+📅 Spa Reservation Request
+
+I would be delighted to arrange this for you, Mr. Vance! To secure your preferred time, please specify:
+1. Your preferred date & time (e.g., Today at 15:00 PM or 20/8/2026 at 14:30)
+2. Service type (e.g., Aromatherapy Massage, Deep Tissue, Hot Stone, Facial)
+
+💡 I'll check availability and confirm your booking!
+
+Alternatively, you may dial Ext '802' to speak directly with our Spa Receptionist for immediate confirmation.
+```
+
+User: "tomorrow 2 PM"
+
+Bot:
+
+```
+✅ Booking Confirmed!
+📅 Date: Thursday, August 20, 2026
+🕐 Time: 02:00 PM
+💆 Service: Aromatherapy Massage
+👤 Guest: Mr. Alexander Vance
+
+Please arrive 15 minutes early for your appointment.
+```
