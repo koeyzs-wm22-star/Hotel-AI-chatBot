@@ -1550,7 +1550,46 @@ def get_bot_response(user_input):
     if not cleaned_input or not cleaned_input.strip():
         return "Greetings! How may I assist your stay at The Grand Apex today?"
 
-    # --- Check if this is a weather query ---
+    # --- NEW: Check for date/time pattern FIRST (before weather) ---
+    # Check for date patterns like 31/8/2026, 20-8-2026, etc.
+    date_patterns = [
+        r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}',  # 31/8/2026 or 20-8-2026
+        r'\d{1,2}\s+[a-zA-Z]{3,}\s+\d{4}',  # 20 Aug 2026
+        r'\b(today|todays|tomorrow|tmr|tomorow|yesterday|yest|yday|day after tomorrow|next week)\b',
+    ]
+    
+    # Check for time patterns
+    time_patterns = [
+        r'\d{1,2}:\d{2}\s*(?:am|pm)?',  # 2:30 PM or 14:30
+        r'\d{1,2}\s*(?:am|pm)\s*(?:o\'clock)?',  # 2 PM or 2pm
+        r'\b(noon|midday|midnight)\b',
+        r'\d{1,2}\s*(?:am|pm)',  # 10am, 2pm
+        r'\d{1,2}\s*(?:o\'clock)',  # 2 o'clock
+        r'\d{1,2}\s*(?:in the)?\s*(morning|afternoon|evening|night)',
+        r'\d{1,2}(?:am|pm)',  # 9pm, 10am
+    ]
+    
+    has_date = any(re.search(pattern, cleaned_input, re.IGNORECASE) for pattern in date_patterns)
+    has_time = any(re.search(pattern, cleaned_input, re.IGNORECASE) for pattern in time_patterns)
+    
+    # Also check for standalone numbers that could be hours
+    if not has_time:
+        numbers = re.findall(r'\b([1-9]|1[0-2])\b', cleaned_input)
+        if numbers:
+            has_time = True
+    
+    is_spa_booking_likely = has_date and has_time
+    
+    # --- NEW: If it looks like a spa booking (has date and time), handle it FIRST ---
+    if is_spa_booking_likely:
+        result = process_spa_booking(user_input)
+        if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result or "needs a date" in result or "needs a time" in result:
+            st.session_state.awaiting_spa_booking = True
+        else:
+            st.session_state.awaiting_spa_booking = False
+        return correction_note + result
+
+    # --- Check if this is a weather query (ONLY after checking for spa booking) ---
     weather_keywords = [
         "weather", "temperature", "forecast", "rain", "sunny", "cloudy", 
         "hot", "cold", "warm", "humid", "degrees", "°c", "°f",
@@ -1564,21 +1603,14 @@ def get_bot_response(user_input):
         weather_res = get_realtime_weather()
         return correction_note + weather_res["weather_response"] + "|||" + weather_res["attraction_response"]
 
-    # --- Check if this is a SPA BOOKING request ---
-    # Check for "spa booking" or "booking spa" specifically
+    # --- Check if this is a SPA BOOKING request (without date/time) ---
     spa_booking_phrases = ["spa booking", "booking spa", "book spa", "reserve spa"]
     is_spa_booking_phrase = any(phrase in cleaned_input.lower() for phrase in spa_booking_phrases)
     
-    # Check for spa keywords
     spa_keywords = ["spa", "massage", "facial", "hot stone", "aromatherapy", "预约spa", "订spa", "spa预约"]
     is_spa_related = any(keyword in cleaned_input.lower() for keyword in spa_keywords)
     
-    # Check for date/time pattern (like "31/8/2026 9pm")
-    date_time_pattern = r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\s*\d{1,2}\s*(?:am|pm)'
-    has_date_time = re.search(date_time_pattern, cleaned_input, re.IGNORECASE) is not None
-    
-    # If user said "spa booking" or related, or has date/time pattern
-    if is_spa_booking_phrase or is_spa_related or has_date_time:
+    if is_spa_booking_phrase or is_spa_related:
         result = process_spa_booking(user_input)
         if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result or "needs a date" in result or "needs a time" in result:
             st.session_state.awaiting_spa_booking = True
@@ -1651,58 +1683,7 @@ def get_bot_response(user_input):
             st.session_state.awaiting_cancel_booking = True
         return correction_note + result
 
-    # --- Check if this looks like a spa booking (has date/time) ---
-    date_keywords = [
-        'today', 'todays', 'tomorrow', 'tmr', 'tomorow', 
-        'yesterday', 'yest', 'yday', 'day after tomorrow', 'next week'
-    ]
-    
-    date_patterns = [
-        r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}',
-        r'\d{1,2}\s+[a-zA-Z]{3,}\s+\d{4}',
-        r'\b(today|todays|tomorrow|tmr|tomorow|yesterday|yest|yday|day after tomorrow|next week)\b',
-    ]
-    
-    time_patterns = [
-        r'\d{1,2}:\d{2}\s*(?:am|pm)?',
-        r'\d{1,2}\s*(?:am|pm)\s*(?:o\'clock)?',
-        r'\b(noon|midday|midnight)\b',
-        r'\d{1,2}\s*(?:am|pm)',
-        r'\d{1,2}\s*(?:o\'clock)',
-        r'\d{1,2}\s*(?:in the)?\s*(morning|afternoon|evening|night)',
-        r'\d{1,2}(?:am|pm)',  # 9pm, 10am
-    ]
-    
-    has_date = any(keyword in cleaned_input.lower() for keyword in date_keywords)
-    
-    if not has_date:
-        for pattern in date_patterns:
-            if re.search(pattern, cleaned_input, re.IGNORECASE):
-                has_date = True
-                break
-    
-    has_time = False
-    for pattern in time_patterns:
-        if re.search(pattern, cleaned_input, re.IGNORECASE):
-            has_time = True
-            break
-    
-    if not has_time:
-        numbers = re.findall(r'\b([1-9]|1[0-2])\b', cleaned_input)
-        if numbers:
-            has_time = True
-    
-    is_spa_booking_likely = has_date and has_time
-    
-    # If in spa booking context OR it's a booking request OR has date/time
-    if st.session_state.awaiting_spa_booking or is_spa_booking_likely:
-        result = process_spa_booking(user_input)
-        if "I'm sorry" in result or "Invalid" in result or "Too Early" in result or "Too Late" in result or "already booked" in result or "Unavailable" in result or "needs a date" in result or "needs a time" in result:
-            st.session_state.awaiting_spa_booking = True
-        else:
-            st.session_state.awaiting_spa_booking = False
-        return correction_note + result
-
+    # --- If in spa booking context (user was previously booking) ---
     if st.session_state.awaiting_spa_booking:
         st.session_state.awaiting_spa_booking = False
         result = process_spa_booking(user_input)
@@ -2188,24 +2169,26 @@ elif st.session_state.page == "chat":
                 "time": current_time
             })
             
-            # Generate & Save Response
+            # Generate Response
             response_text = get_bot_response(user_prompt)
             
             # Check if response has split marker for weather
             if "|||" in response_text:
-                weather_part, attraction_part = response_text.split("|||", 1)
+                parts = response_text.split("|||")
                 # Send first response (weather)
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": weather_part,
-                    "time": current_time
-                })
-                # Send second response (attractions)
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": attraction_part,
-                    "time": current_time
-                })
+                if parts[0].strip():
+                    st.session_state.messages.append({
+                        "role": "assistant", 
+                        "content": parts[0].strip(),
+                        "time": current_time
+                    })
+                # Send second response (attractions) - only if it exists and is not empty
+                if len(parts) > 1 and parts[1].strip():
+                    st.session_state.messages.append({
+                        "role": "assistant", 
+                        "content": parts[1].strip(),
+                        "time": current_time
+                    })
             else:
                 # Normal single response
                 st.session_state.messages.append({
