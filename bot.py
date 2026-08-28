@@ -639,23 +639,19 @@ if st.button("📧 Send / Resend Extension Confirmation"):
             guest_email=guest_email
         )
         if success:
-            st.session_state.room_email_sent = True  # Locks duplicate runs for this specific email
+            current_guest_email = st.session_state.get("guest_email", "").strip()
             st.success(message)
         else:
             st.error(message)
     elif not guest_email:
         st.warning("⚠️ Please enter a valid email address.")
 
-# Safer text input implementation using .get()
-user_email_input = st.text_input(
+# Render input widget ONCE (e.g., in your sidebar or top dashboard header)
+st.text_input(
     "📧 Preferred Email for Confirmations:",
-    value=st.session_state.get("guest_email", ""),
+    key="guest_email",  # Automatically initializes and updates st.session_state.guest_email
     placeholder="enter.your.email@domain.com"
 )
-
-# Save user input back to state
-if user_email_input:
-    st.session_state.guest_email = user_email_input
     
 # ==========================================
 # 1. Page Config & Session State Setup
