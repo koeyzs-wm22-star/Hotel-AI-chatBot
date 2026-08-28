@@ -594,12 +594,17 @@ def send_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", g
     except Exception as e:
         return False, f"⚠️ Cancellation email could not be sent: {str(e)}"
 
-# Safely fetch current stay details with fallback defaults
+# 1. Safely fetch current stay details with fallback defaults
 current_stay = st.session_state.get("current_stay", {})
-check_in_val = current_stay.get("check_in")
-check_out_val = current_stay.get("check_out")
 
-# Format dates safely if available
+# Fallback default dates if session state values are missing or None
+default_check_in = datetime(2026, 7, 28)
+default_check_out = datetime(2026, 8, 3)
+
+check_in_val = current_stay.get("check_in") or default_check_in
+check_out_val = current_stay.get("check_out") or default_check_out
+
+# 2. Format dates safely
 check_in_str = check_in_val.strftime("%Y-%m-%d") if hasattr(check_in_val, "strftime") else str(check_in_val)
 check_out_str = check_out_val.strftime("%Y-%m-%d") if hasattr(check_out_val, "strftime") else str(check_out_val)
 
@@ -608,6 +613,24 @@ room_details = {
     "check_out": check_out_str,
     "room": current_stay.get("room", "Penthouse 1808")
 }
+
+# 3. Explicitly extract recipient info
+guest_name = current_stay.get("guest", "Mr. Alexander Vance")
+guest_email = st.session_state.get("guest_email", "")
+
+# 4. Trigger Email and Display Feedback
+if guest_email:
+    success, message = send_room_confirmation_email(
+        booking_details=room_details,
+        guest_name=guest_name,
+        guest_email=guest_email
+    )
+    if success:
+        st.success(message)
+    else:
+        st.error(message)
+else:
+    st.warning("⚠️ Cannot send email: Please enter your email address first.")
 
 # Safer text input implementation using .get()
 user_email_input = st.text_input(
