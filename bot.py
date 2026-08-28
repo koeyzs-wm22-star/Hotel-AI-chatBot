@@ -32,6 +32,34 @@ EMAIL_CONFIG = {
     "sender_name": "The Grand Apex Resort & Spa",
     "use_smtp": True
 }
+import streamlit as st
+from datetime import datetime
+
+# Page Config must be the first Streamlit command
+st.set_page_config(
+    page_title="The Grand Apex Resort & Spa | Executive Concierge",
+    page_icon="👑",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# ==========================================
+# Session State Initialization (MUST BE BEFORE UI COMPONENTS)
+# ==========================================
+if "guest_email" not in st.session_state:
+    st.session_state.guest_email = ""  # Default empty string
+
+if "page" not in st.session_state:
+    st.session_state.page = "dashboard"
+
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {
+            "role": "assistant",
+            "content": "Greetings! It is my absolute pleasure to welcome you to The Grand Apex Resort & Spa. How may I assist your stay today?",
+            "time": datetime.now().strftime("%I:%M %p")
+        }
+    ]
 
 def get_email_html(booking_details, guest_name):
     """
@@ -477,14 +505,14 @@ def send_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", g
     except Exception as e:
         return False, f"⚠️ Cancellation email could not be sent: {str(e)}"
 
-# Add this inside your Dashboard layout (e.g., near the Guest Info Banner) or in a sidebar:
+# Safer text input implementation using .get()
 user_email_input = st.text_input(
     "📧 Preferred Email for Confirmations:",
-    value=st.session_state.guest_email,
+    value=st.session_state.get("guest_email", ""),
     placeholder="enter.your.email@domain.com"
 )
 
-# Store user input dynamically in session state
+# Save user input back to state
 if user_email_input:
     st.session_state.guest_email = user_email_input
     
