@@ -453,6 +453,8 @@ def get_cancellation_email_html(booking_details, guest_name):
     </html>
     """
 
+
+
 def get_room_cancellation_email_html(booking_details, guest_name):
     """HTML content for room stay cancellation."""
     return f"""
@@ -466,6 +468,8 @@ def get_room_cancellation_email_html(booking_details, guest_name):
       </body>
     </html>
     """
+
+
 def send_room_confirmation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email=None):
     """Send room booking confirmation email using SMTP."""
     if not guest_email:
