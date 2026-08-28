@@ -2844,7 +2844,6 @@ elif st.session_state.page == "chat":
         with st.expander("📧 Email Settings"):
             st.text_input("Your Email Address", value=st.session_state.guest_email, key="guest_email_input")
             if st.button("Update Email"):
-                st.session_state.guest_email = st.session_state.guest_email_input
                 st.success(f"Email updated to: {st.session_state.guest_email}")
 
     # --- MAIN CHAT AREA ---
