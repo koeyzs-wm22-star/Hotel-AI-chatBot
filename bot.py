@@ -594,6 +594,19 @@ def send_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", g
     except Exception as e:
         return False, f"⚠️ Cancellation email could not be sent: {str(e)}"
 
+# Example when extending room stay
+room_details = {
+    "check_in": st.session_state.current_stay["check_in"].strftime("%Y-%m-%d"),
+    "check_out": st.session_state.current_stay["check_out"].strftime("%Y-%m-%d"),
+    "room": st.session_state.current_stay["room"]
+}
+success, status_msg = send_room_confirmation_email(
+    booking_details=room_details,
+    guest_name=st.session_state.current_stay["guest"],
+    guest_email=st.session_state.guest_email
+)
+st.toast(status_msg)
+
 # Safer text input implementation using .get()
 user_email_input = st.text_input(
     "📧 Preferred Email for Confirmations:",
