@@ -27,39 +27,11 @@ from email.mime.multipart import MIMEMultipart
 EMAIL_CONFIG = {
     "smtp_server": "smtp.gmail.com",
     "smtp_port": 587,
-    "sender_email": "koeyzs-wm22@student.tarc.edu.my",  # Your Gmail
-    "sender_password": "qxis rtkl cokw hndy",   # Your App Password
+    "sender_email": "marcusha1220@gmail.com",  # Your Gmail
+    "sender_password": "ssgc ddku aqvv dpiz",   # Your App Password
     "sender_name": "The Grand Apex Resort & Spa",
     "use_smtp": True
 }
-import streamlit as st
-from datetime import datetime
-
-# Page Config must be the first Streamlit command
-st.set_page_config(
-    page_title="The Grand Apex Resort & Spa | Executive Concierge",
-    page_icon="👑",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
-
-# ==========================================
-# Session State Initialization (MUST BE BEFORE UI COMPONENTS)
-# ==========================================
-if "guest_email" not in st.session_state:
-    st.session_state.guest_email = ""  # Default empty string
-
-if "page" not in st.session_state:
-    st.session_state.page = "dashboard"
-
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {
-            "role": "assistant",
-            "content": "Greetings! It is my absolute pleasure to welcome you to The Grand Apex Resort & Spa. How may I assist your stay today?",
-            "time": datetime.now().strftime("%I:%M %p")
-        }
-    ]
 
 def get_email_html(booking_details, guest_name):
     """
@@ -435,106 +407,10 @@ def get_cancellation_email_html(booking_details, guest_name):
     </html>
     """
 
-    
-def get_room_email_html(booking_details, guest_name):
-    """HTML content for room stay confirmation."""
-    return f"""
-    <html>
-      <body style="font-family: Arial, sans-serif; color: #333;">
-        <h2 style="color: #8C6B2D;">The Grand Apex Resort & Spa</h2>
-        <h3>Room Booking Confirmation</h3>
-        <p>Dear {guest_name},</p>
-        <p>Your room reservation has been successfully updated or confirmed.</p>
-        <ul>
-          <li><strong>Room:</strong> {booking_details.get('room', 'Penthouse')}</li>
-          <li><strong>Check-In Date:</strong> {booking_details['check_in']}</li>
-          <li><strong>Check-Out Date:</strong> {booking_details['check_out']}</li>
-        </ul>
-        <p>We look forward to welcoming you!</p>
-      </body>
-    </html>
-    """
-
-
-def get_room_cancellation_email_html(booking_details, guest_name):
-    """HTML content for room stay cancellation."""
-    return f"""
-    <html>
-      <body style="font-family: Arial, sans-serif; color: #333;">
-        <h2 style="color: #8C6B2D;">The Grand Apex Resort & Spa</h2>
-        <h3>Room Booking Cancellation</h3>
-        <p>Dear {guest_name},</p>
-        <p>Your room reservation for <strong>{booking_details.get('room', 'Penthouse')}</strong> starting on <strong>{booking_details['check_in']}</strong> has been cancelled.</p>
-        <p>If this was done in error, please contact our front desk immediately.</p>
-      </body>
-    </html>
-    """
-
-
-def send_room_confirmation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email=None):
-    """Send room booking confirmation email using SMTP."""
-    if not guest_email:
-        guest_email = st.session_state.get("guest_email", "")
-
-    if not guest_email:
-        return False, "⚠️ No valid email address provided."
-
-    try:
-        msg = MIMEMultipart('alternative')
-        msg['From'] = f"{EMAIL_CONFIG['sender_name']} <{EMAIL_CONFIG['sender_email']}>"
-        msg['To'] = guest_email
-        msg['Subject'] = f"✅ The Grand Apex - Room Booking Confirmation - {booking_details['check_in']}"
-        
-        html_content = get_room_email_html(booking_details, guest_name)
-        msg.attach(MIMEText(html_content, 'html'))
-        
-        with smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port']) as server:
-            server.starttls(context=ssl.create_default_context())
-            server.login(EMAIL_CONFIG['sender_email'], EMAIL_CONFIG['sender_password'])
-            server.send_message(msg)
-        
-        return True, f"📧 Room confirmation email sent to {guest_email}!"
-    except Exception as e:
-        return False, f"⚠️ Room email could not be sent: {str(e)}"
-
-
-def send_room_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email=None):
-    """Send room booking cancellation email using SMTP."""
-    if not guest_email:
-        guest_email = st.session_state.get("guest_email", "")
-
-    if not guest_email:
-        return False, "⚠️ No valid email address provided."
-
-    try:
-        msg = MIMEMultipart('alternative')
-        msg['From'] = f"{EMAIL_CONFIG['sender_name']} <{EMAIL_CONFIG['sender_email']}>"
-        msg['To'] = guest_email
-        msg['Subject'] = f"❌ The Grand Apex - Room Booking Cancelled - {booking_details['check_in']}"
-        
-        html_content = get_room_cancellation_email_html(booking_details, guest_name)
-        msg.attach(MIMEText(html_content, 'html'))
-        
-        with smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port']) as server:
-            server.starttls(context=ssl.create_default_context())
-            server.login(EMAIL_CONFIG['sender_email'], EMAIL_CONFIG['sender_password'])
-            server.send_message(msg)
-        
-        return True, f"📧 Room cancellation email sent to {guest_email}!"
-    except Exception as e:
-        return False, f"⚠️ Room cancellation email could not be sent: {str(e)}"
-
-def send_booking_confirmation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email=None):
+def send_booking_confirmation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email="marcusha1220@gmail.com"):
     """
     Send booking confirmation email using SMTP
     """
-    # Use session_state email if none is passed explicitly
-    if not guest_email:
-        guest_email = st.session_state.get("guest_email", "")
-
-    if not guest_email:
-        return False, "⚠️ No valid email address provided."
-
     try:
         # Create email
         msg = MIMEMultipart('alternative')
@@ -554,22 +430,15 @@ def send_booking_confirmation_email(booking_details, guest_name="Mr. Alexander V
             server.login(EMAIL_CONFIG['sender_email'], EMAIL_CONFIG['sender_password'])
             server.send_message(msg)
         
-        return True, f"📧 Booking confirmation email sent to {guest_email}!"
+        return True, "📧 Booking confirmation email sent to your registered email address!"
     
     except Exception as e:
         return False, f"⚠️ Email could not be sent: {str(e)}"
 
-
-def send_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email=None):
+def send_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email="marcusha1220@gmail.com"):
     """
     Send booking cancellation email to customer
     """
-    if not guest_email:
-        guest_email = st.session_state.get("guest_email", "")
-
-    if not guest_email:
-        return False, "⚠️ No valid email address provided."
-
     try:
         # Create email
         msg = MIMEMultipart('alternative')
@@ -589,23 +458,11 @@ def send_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", g
             server.login(EMAIL_CONFIG['sender_email'], EMAIL_CONFIG['sender_password'])
             server.send_message(msg)
         
-        return True, f"📧 Cancellation confirmation email sent to {guest_email}!"
+        return True, "📧 Cancellation confirmation email sent to your registered email address!"
     
     except Exception as e:
         return False, f"⚠️ Cancellation email could not be sent: {str(e)}"
 
-
-# Safer text input implementation using .get()
-user_email_input = st.text_input(
-    "📧 Preferred Email for Confirmations:",
-    value=st.session_state.get("guest_email", ""),
-    placeholder="enter.your.email@domain.com"
-)
-
-# Save user input back to state
-if user_email_input:
-    st.session_state.guest_email = user_email_input
-    
 # ==========================================
 # 1. Page Config & Session State Setup
 # ==========================================
@@ -643,9 +500,9 @@ if "awaiting_extend_booking" not in st.session_state:
 if "latest_spa_booking" not in st.session_state:
     st.session_state.latest_spa_booking = None
 
-# Guest Email (Defaults to empty string for user input)
+# Guest Email
 if "guest_email" not in st.session_state:
-    st.session_state.guest_email = ""
+    st.session_state.guest_email = "marcusha1220@gmail.com"
 
 # Room Stay Information
 if "current_stay" not in st.session_state:
@@ -2793,6 +2650,7 @@ elif st.session_state.page == "chat":
         with st.expander("📧 Email Settings"):
             st.text_input("Your Email Address", value=st.session_state.guest_email, key="guest_email_input")
             if st.button("Update Email"):
+                st.session_state.guest_email = st.session_state.guest_email_input
                 st.success(f"Email updated to: {st.session_state.guest_email}")
 
     # --- MAIN CHAT AREA ---
