@@ -27,16 +27,73 @@ from email.mime.multipart import MIMEMultipart
 EMAIL_CONFIG = {
     "smtp_server": "smtp.gmail.com",
     "smtp_port": 587,
-    "sender_email": "koeyzs-wm22@student.tarc.edu.my",  # Your Gmail
-    "sender_password": "qxis rtkl cokw hndy",   # Your App Password
+    "sender_email": "koeyzs-wm22@student.tarc.edu.my",
+    "sender_password": "qxis rtkl cokw hndy",
     "sender_name": "The Grand Apex Resort & Spa",
     "use_smtp": True
 }
 
+# ==========================================
+# Session State Initialization
+# ==========================================
+if "guest_email" not in st.session_state:
+    st.session_state.guest_email = ""
+
+if "page" not in st.session_state:
+    st.session_state.page = "dashboard"
+
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {
+            "role": "assistant",
+            "content": "Greetings! It is my absolute pleasure to welcome you to The Grand Apex Resort & Spa. How may I assist your stay today?",
+            "time": datetime.now().strftime("%I:%M %p")
+        }
+    ]
+
+if "awaiting_spa_booking" not in st.session_state:
+    st.session_state.awaiting_spa_booking = False
+
+if "awaiting_cancel_booking" not in st.session_state:
+    st.session_state.awaiting_cancel_booking = False
+
+if "awaiting_extend_booking" not in st.session_state:
+    st.session_state.awaiting_extend_booking = False
+
+if "latest_spa_booking" not in st.session_state:
+    st.session_state.latest_spa_booking = None
+
+if "room_email_sent" not in st.session_state:
+    st.session_state.room_email_sent = False
+
+# Room Stay Information
+if "current_stay" not in st.session_state:
+    st.session_state.current_stay = {
+        "check_in": datetime(2026, 7, 28),
+        "check_out": datetime(2026, 8, 3),
+        "room": "Penthouse 1808",
+        "guest": "Mr. Alexander Vance"
+    }
+
+# Spa Booking Database (In-memory simulation)
+if "spa_bookings" not in st.session_state:
+    st.session_state.spa_bookings = {
+        "2026-07-28 10:00": {"guest_name": "Mr. Alexander Vance", "service": "Aromatherapy Massage", "duration": 60},
+        "2026-07-28 11:00": {"guest_name": "Ms. Lee", "service": "Deep Tissue Massage", "duration": 60},
+        "2026-07-28 14:00": {"guest_name": "Mr. Tan", "service": "Hot Stone Therapy", "duration": 90},
+        "2026-07-29 09:00": {"guest_name": "Mrs. Wong", "service": "Hydrating Facial", "duration": 60},
+        "2026-07-29 15:00": {"guest_name": "Mr. Smith", "service": "Aromatherapy Massage", "duration": 60},
+    }
+
+if "temp_booking_data" not in st.session_state:
+    st.session_state.temp_booking_data = {}
+
+# ==========================================
+# EMAIL HTML FUNCTIONS
+# ==========================================
+
 def get_email_html(booking_details, guest_name):
-    """
-    Generate HTML email content for booking confirmation
-    """
+    """Generate HTML email content for booking confirmation"""
     return f"""
     <!DOCTYPE html>
     <html>
@@ -225,9 +282,7 @@ def get_email_html(booking_details, guest_name):
     """
 
 def get_cancellation_email_html(booking_details, guest_name):
-    """
-    Generate HTML email content for booking cancellation
-    """
+    """Generate HTML email content for booking cancellation"""
     return f"""
     <!DOCTYPE html>
     <html>
@@ -407,64 +462,471 @@ def get_cancellation_email_html(booking_details, guest_name):
     </html>
     """
 
-def send_booking_confirmation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email="marcusha1220@gmail.com"):
+def get_room_extend_email_html(booking_details, guest_name):
+    """HTML content for room extension confirmation email."""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Room Stay Extended</title>
+        <style>
+            body {{
+                font-family: 'Georgia', 'Times New Roman', serif;
+                background-color: #FAF8F5;
+                margin: 0;
+                padding: 20px;
+                color: #1A1A1A;
+            }}
+            .container {{
+                max-width: 600px;
+                margin: 0 auto;
+                background: #FFFFFF;
+                border-radius: 16px;
+                border: 1px solid #C5A059;
+                box-shadow: 0 8px 30px rgba(197, 160, 89, 0.15);
+                overflow: hidden;
+            }}
+            .header {{
+                background: linear-gradient(135deg, #8C6B2D 0%, #C5A059 100%);
+                padding: 30px 20px;
+                text-align: center;
+                color: white;
+            }}
+            .header h1 {{
+                margin: 0;
+                font-size: 28px;
+                font-weight: 700;
+                letter-spacing: 2px;
+                font-family: 'Georgia', serif;
+            }}
+            .header p {{
+                margin: 8px 0 0 0;
+                font-size: 14px;
+                opacity: 0.9;
+                letter-spacing: 1px;
+            }}
+            .content {{
+                padding: 30px 25px;
+            }}
+            .extend-box {{
+                background: #E3F2FD;
+                padding: 20px;
+                border-radius: 12px;
+                margin: 20px 0;
+                border-left: 4px solid #1565C0;
+            }}
+            .extend-box p {{
+                margin: 8px 0;
+                font-size: 15px;
+            }}
+            .extend-box strong {{
+                color: #1565C0;
+            }}
+            .icon {{
+                font-size: 18px;
+            }}
+            .divider {{
+                border: none;
+                border-top: 2px dashed #E8E0D8;
+                margin: 25px 0;
+            }}
+            .footer {{
+                background: #FAF8F5;
+                padding: 20px 25px;
+                text-align: center;
+                font-size: 12px;
+                color: #7A7570;
+                border-top: 1px solid #E8E0D8;
+            }}
+            .footer a {{
+                color: #8C6B2D;
+                text-decoration: none;
+            }}
+            .badge {{
+                display: inline-block;
+                background: #1565C0;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 600;
+                margin-left: 8px;
+            }}
+            .info {{
+                background: #E8F5E9;
+                padding: 15px 20px;
+                border-radius: 8px;
+                border-left: 4px solid #4CAF50;
+                margin: 20px 0;
+            }}
+            @media only screen and (max-width: 480px) {{
+                .container {{
+                    border-radius: 0;
+                }}
+                .content {{
+                    padding: 20px 15px;
+                }}
+                .header h1 {{
+                    font-size: 22px;
+                }}
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🏨 The Grand Apex</h1>
+                <p>Executive VIP Concierge</p>
+            </div>
+            
+            <div class="content">
+                <h2 style="color: #1565C0; margin-top: 0;">✅ Room Stay Extended!</h2>
+                
+                <p>Dear <strong>{guest_name}</strong>,</p>
+                
+                <p>Your room stay at <strong>The Grand Apex Resort & Spa</strong> has been successfully extended. We are delighted to accommodate your extended stay.</p>
+                
+                <div class="extend-box">
+                    <h3 style="margin-top: 0; color: #1565C0;">📋 Updated Stay Details</h3>
+                    <p><span class="icon">🏠</span> <strong>Room:</strong> {booking_details.get('room', 'Penthouse 1808')}</p>
+                    <p><span class="icon">📅</span> <strong>Original Check-out:</strong> {booking_details['original_checkout']}</p>
+                    <p><span class="icon">📅</span> <strong>New Check-out Date:</strong> <strong style="color: #1565C0;">{booking_details['new_checkout']}</strong></p>
+                    <p><span class="icon">📆</span> <strong>Extended by:</strong> {booking_details['extra_days']} day{'s' if booking_details['extra_days'] > 1 else ''}</p>
+                    <p><span class="icon">💵</span> <strong>Total Nights:</strong> {booking_details['total_nights']} nights</p>
+                </div>
+                
+                <div class="info">
+                    <p style="margin: 0; font-size: 14px;">
+                        💡 <strong>Housekeeping has been notified</strong> of your new check-out date.
+                    </p>
+                </div>
+                
+                <hr class="divider">
+                
+                <div style="background: #E8F5E9; padding: 12px 16px; border-radius: 8px; margin: 15px 0;">
+                    <p style="margin: 0; font-size: 14px;">
+                        💡 <strong>Need further assistance?</strong> 
+                        Dial <strong>Ext '0'</strong> for our Concierge Desk.
+                    </p>
+                </div>
+                
+                <p style="margin-top: 20px; font-style: italic; color: #555;">
+                    "We hope you continue to enjoy your stay with us."
+                </p>
+                
+                <p style="margin-top: 25px;">
+                    Warm regards,<br>
+                    <strong style="color: #8C6B2D; font-size: 16px;">The Grand Apex Concierge Team</strong>
+                </p>
+            </div>
+            
+            <div class="footer">
+                <p>
+                    <strong>The Grand Apex Resort & Spa</strong><br>
+                    Suite 1808 | Kuala Lumpur | Malaysia<br>
+                    <a href="tel:0">📞 Extension '0'</a> | 
+                    <a href="#">🌐 www.grandapex.com</a>
+                </p>
+                <p style="margin-top: 10px; font-size: 11px;">
+                    This is an automated confirmation. Please do not reply to this email.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
     """
-    Send booking confirmation email using SMTP
+
+def get_spa_extend_email_html(booking_details, guest_name):
+    """HTML content for spa extension confirmation email."""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Spa Booking Extended</title>
+        <style>
+            body {{
+                font-family: 'Georgia', 'Times New Roman', serif;
+                background-color: #FAF8F5;
+                margin: 0;
+                padding: 20px;
+                color: #1A1A1A;
+            }}
+            .container {{
+                max-width: 600px;
+                margin: 0 auto;
+                background: #FFFFFF;
+                border-radius: 16px;
+                border: 1px solid #C5A059;
+                box-shadow: 0 8px 30px rgba(197, 160, 89, 0.15);
+                overflow: hidden;
+            }}
+            .header {{
+                background: linear-gradient(135deg, #8C6B2D 0%, #C5A059 100%);
+                padding: 30px 20px;
+                text-align: center;
+                color: white;
+            }}
+            .header h1 {{
+                margin: 0;
+                font-size: 28px;
+                font-weight: 700;
+                letter-spacing: 2px;
+                font-family: 'Georgia', serif;
+            }}
+            .header p {{
+                margin: 8px 0 0 0;
+                font-size: 14px;
+                opacity: 0.9;
+                letter-spacing: 1px;
+            }}
+            .content {{
+                padding: 30px 25px;
+            }}
+            .extend-box {{
+                background: #F3E5F5;
+                padding: 20px;
+                border-radius: 12px;
+                margin: 20px 0;
+                border-left: 4px solid #7B1FA2;
+            }}
+            .extend-box p {{
+                margin: 8px 0;
+                font-size: 15px;
+            }}
+            .extend-box strong {{
+                color: #7B1FA2;
+            }}
+            .icon {{
+                font-size: 18px;
+            }}
+            .divider {{
+                border: none;
+                border-top: 2px dashed #E8E0D8;
+                margin: 25px 0;
+            }}
+            .footer {{
+                background: #FAF8F5;
+                padding: 20px 25px;
+                text-align: center;
+                font-size: 12px;
+                color: #7A7570;
+                border-top: 1px solid #E8E0D8;
+            }}
+            .footer a {{
+                color: #8C6B2D;
+                text-decoration: none;
+            }}
+            .badge {{
+                display: inline-block;
+                background: #7B1FA2;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 600;
+                margin-left: 8px;
+            }}
+            .info {{
+                background: #E8F5E9;
+                padding: 15px 20px;
+                border-radius: 8px;
+                border-left: 4px solid #4CAF50;
+                margin: 20px 0;
+            }}
+            @media only screen and (max-width: 480px) {{
+                .container {{
+                    border-radius: 0;
+                }}
+                .content {{
+                    padding: 20px 15px;
+                }}
+                .header h1 {{
+                    font-size: 22px;
+                }}
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🏨 The Grand Apex</h1>
+                <p>Executive VIP Concierge</p>
+            </div>
+            
+            <div class="content">
+                <h2 style="color: #7B1FA2; margin-top: 0;">✅ Spa Booking Extended!</h2>
+                
+                <p>Dear <strong>{guest_name}</strong>,</p>
+                
+                <p>Your spa booking at <strong>The Grand Apex Resort & Spa</strong> has been successfully moved to a new date.</p>
+                
+                <div class="extend-box">
+                    <h3 style="margin-top: 0; color: #7B1FA2;">📋 Updated Booking Details</h3>
+                    <p><span class="icon">📅</span> <strong>Old Date:</strong> {booking_details['old_date']}</p>
+                    <p><span class="icon">🕐</span> <strong>Old Time:</strong> {booking_details['old_time']}</p>
+                    <p><span class="icon">📅</span> <strong>New Date:</strong> <strong style="color: #7B1FA2;">{booking_details['new_date']}</strong></p>
+                    <p><span class="icon">🕐</span> <strong>New Time:</strong> {booking_details['new_time']}</p>
+                    <p><span class="icon">💆</span> <strong>Service:</strong> {booking_details['service']}</p>
+                    <p><span class="icon">⏱️</span> <strong>Duration:</strong> {booking_details['duration']} minutes</p>
+                </div>
+                
+                <div class="info">
+                    <p style="margin: 0; font-size: 14px;">
+                        💡 <strong>Please arrive 15 minutes early</strong> for your appointment at the new time.
+                    </p>
+                </div>
+                
+                <hr class="divider">
+                
+                <div style="background: #E8F5E9; padding: 12px 16px; border-radius: 8px; margin: 15px 0;">
+                    <p style="margin: 0; font-size: 14px;">
+                        💡 <strong>Need further assistance?</strong> 
+                        Dial <strong>Ext '802'</strong> for our Spa Reception.
+                    </p>
+                </div>
+                
+                <p style="margin-top: 20px; font-style: italic; color: #555;">
+                    "We look forward to providing you with an exceptional wellness experience."
+                </p>
+                
+                <p style="margin-top: 25px;">
+                    Warm regards,<br>
+                    <strong style="color: #8C6B2D; font-size: 16px;">The Grand Apex Concierge Team</strong>
+                </p>
+            </div>
+            
+            <div class="footer">
+                <p>
+                    <strong>The Grand Apex Resort & Spa</strong><br>
+                    Suite 1808 | Kuala Lumpur | Malaysia<br>
+                    <a href="tel:0">📞 Extension '0'</a> | 
+                    <a href="#">🌐 www.grandapex.com</a>
+                </p>
+                <p style="margin-top: 10px; font-size: 11px;">
+                    This is an automated confirmation. Please do not reply to this email.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
     """
+
+# ==========================================
+# EMAIL SENDING FUNCTIONS
+# ==========================================
+
+def send_booking_confirmation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email=None):
+    """Send booking confirmation email using SMTP"""
+    if not guest_email:
+        guest_email = st.session_state.get("guest_email", "")
+
+    if not guest_email:
+        return False, "⚠️ No valid email address provided."
+
     try:
-        # Create email
         msg = MIMEMultipart('alternative')
         msg['From'] = f"{EMAIL_CONFIG['sender_name']} <{EMAIL_CONFIG['sender_email']}>"
         msg['To'] = guest_email
         msg['Subject'] = f"✅ The Grand Apex - Spa Booking Confirmation - {booking_details['date']}"
         
-        # HTML content
         html_content = get_email_html(booking_details, guest_name)
-        
-        # Attach HTML
         msg.attach(MIMEText(html_content, 'html'))
         
-        # Send email
         with smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port']) as server:
             server.starttls(context=ssl.create_default_context())
             server.login(EMAIL_CONFIG['sender_email'], EMAIL_CONFIG['sender_password'])
             server.send_message(msg)
         
-        return True, "📧 Booking confirmation email sent to your registered email address!"
+        return True, f"📧 Booking confirmation email sent to {guest_email}!"
     
     except Exception as e:
         return False, f"⚠️ Email could not be sent: {str(e)}"
 
-def send_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email="marcusha1220@gmail.com"):
-    """
-    Send booking cancellation email to customer
-    """
+def send_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email=None):
+    """Send booking cancellation email to customer"""
+    if not guest_email:
+        guest_email = st.session_state.get("guest_email", "")
+
+    if not guest_email:
+        return False, "⚠️ No valid email address provided."
+
     try:
-        # Create email
         msg = MIMEMultipart('alternative')
         msg['From'] = f"{EMAIL_CONFIG['sender_name']} <{EMAIL_CONFIG['sender_email']}>"
         msg['To'] = guest_email
         msg['Subject'] = f"❌ The Grand Apex - Spa Booking Cancelled - {booking_details['date']}"
         
-        # HTML content for cancellation
         html_content = get_cancellation_email_html(booking_details, guest_name)
-        
-        # Attach HTML
         msg.attach(MIMEText(html_content, 'html'))
         
-        # Send email
         with smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port']) as server:
             server.starttls(context=ssl.create_default_context())
             server.login(EMAIL_CONFIG['sender_email'], EMAIL_CONFIG['sender_password'])
             server.send_message(msg)
         
-        return True, "📧 Cancellation confirmation email sent to your registered email address!"
+        return True, f"📧 Cancellation confirmation email sent to {guest_email}!"
     
     except Exception as e:
         return False, f"⚠️ Cancellation email could not be sent: {str(e)}"
 
+def send_room_extend_email(booking_details, guest_name="Mr. Alexander Vance", guest_email=None):
+    """Send room extension confirmation email."""
+    if not guest_email:
+        guest_email = st.session_state.get("guest_email", "")
+
+    if not guest_email:
+        return False, "⚠️ No valid email address provided."
+
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['From'] = f"{EMAIL_CONFIG['sender_name']} <{EMAIL_CONFIG['sender_email']}>"
+        msg['To'] = guest_email
+        msg['Subject'] = f"✅ The Grand Apex - Room Stay Extended - {booking_details['new_checkout']}"
+        
+        html_content = get_room_extend_email_html(booking_details, guest_name)
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        with smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port']) as server:
+            server.starttls(context=ssl.create_default_context())
+            server.login(EMAIL_CONFIG['sender_email'], EMAIL_CONFIG['sender_password'])
+            server.send_message(msg)
+        
+        return True, f"📧 Room extension confirmation sent to {guest_email}!"
+    except Exception as e:
+        return False, f"⚠️ Room extension email could not be sent: {str(e)}"
+
+def send_spa_extend_email(booking_details, guest_name="Mr. Alexander Vance", guest_email=None):
+    """Send spa extension confirmation email."""
+    if not guest_email:
+        guest_email = st.session_state.get("guest_email", "")
+
+    if not guest_email:
+        return False, "⚠️ No valid email address provided."
+
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['From'] = f"{EMAIL_CONFIG['sender_name']} <{EMAIL_CONFIG['sender_email']}>"
+        msg['To'] = guest_email
+        msg['Subject'] = f"✅ The Grand Apex - Spa Booking Extended - {booking_details['new_date']}"
+        
+        html_content = get_spa_extend_email_html(booking_details, guest_name)
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        with smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port']) as server:
+            server.starttls(context=ssl.create_default_context())
+            server.login(EMAIL_CONFIG['sender_email'], EMAIL_CONFIG['sender_password'])
+            server.send_message(msg)
+        
+        return True, f"📧 Spa extension confirmation sent to {guest_email}!"
+    except Exception as e:
+        return False, f"⚠️ Spa extension email could not be sent: {str(e)}"
+
 # ==========================================
-# 1. Page Config & Session State Setup
+# Page Config (MUST BE FIRST STREAMLIT COMMAND)
 # ==========================================
 st.set_page_config(
     page_title="The Grand Apex Resort & Spa | Executive Concierge",
@@ -473,7 +935,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# ==========================================
 # Page Navigation State
+# ==========================================
 if "page" not in st.session_state:
     st.session_state.page = "dashboard"
 
@@ -502,7 +966,7 @@ if "latest_spa_booking" not in st.session_state:
 
 # Guest Email
 if "guest_email" not in st.session_state:
-    st.session_state.guest_email = "marcusha1220@gmail.com"
+    st.session_state.guest_email = ""
 
 # Room Stay Information
 if "current_stay" not in st.session_state:
@@ -526,9 +990,8 @@ if "spa_bookings" not in st.session_state:
 if "temp_booking_data" not in st.session_state:
     st.session_state.temp_booking_data = {}
 
-
 # ==========================================
-# 2. Page Navigation & Utility Helpers
+# Page Navigation & Utility Helpers
 # ==========================================
 def navigate_to(page_name):
     """Handles seamless page switching between TV Dashboard and Chat Hub."""
@@ -620,26 +1083,13 @@ def spell_check_and_correct(user_input):
         return corrected, True
     return original, False
 
-
 # ==========================================
-# 3. Enhanced Date/Time Parsing & Validation
+# Enhanced Date/Time Parsing & Validation
 # ==========================================
 def parse_date_from_string(date_str):
-    """
-    Parse date from various formats including:
-    - 20/8/2026
-    - 20-8-2026
-    - 31/8/2026
-    - 20 August 2026
-    - today
-    - tomorrow
-    - yesterday
-    - day after tomorrow
-    Returns (datetime_obj, error_message)
-    """
+    """Parse date from various formats"""
     date_str = date_str.strip().lower()
     
-    # Handle special keywords
     if date_str in ["today", "todays"]:
         return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0), None
     elif date_str in ["tomorrow", "tmr", "tomorow"]:
@@ -651,24 +1101,22 @@ def parse_date_from_string(date_str):
     elif "next week" in date_str:
         return (datetime.now() + timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0), None
     
-    # Try different date formats
     date_formats = [
-        ("%Y-%m-%d", False),      # 2026-07-28
-        ("%d/%m/%Y", False),      # 28/07/2026 or 31/08/2026
-        ("%d-%m-%Y", False),      # 28-07-2026
-        ("%d.%m.%Y", False),      # 28.07.2026
-        ("%d %B %Y", False),      # 28 July 2026
-        ("%B %d %Y", False),      # July 28 2026
-        ("%d-%b-%Y", False),      # 28-Jul-2026
-        ("%b %d %Y", False),      # Jul 28 2026
-        ("%Y%m%d", False),        # 20260728
-        ("%d/%m/%y", False),      # 28/07/26
-        ("%d-%m-%y", False),      # 28-07-26
-        ("%d.%m.%y", False),      # 28.07.26
-        ("%d-%b-%y", False),      # 28-Jul-26
+        ("%Y-%m-%d", False),
+        ("%d/%m/%Y", False),
+        ("%d-%m-%Y", False),
+        ("%d.%m.%Y", False),
+        ("%d %B %Y", False),
+        ("%B %d %Y", False),
+        ("%d-%b-%Y", False),
+        ("%b %d %Y", False),
+        ("%Y%m%d", False),
+        ("%d/%m/%y", False),
+        ("%d-%m-%y", False),
+        ("%d.%m.%y", False),
+        ("%d-%b-%y", False),
     ]
     
-    # Remove ordinal indicators (st, nd, rd, th)
     cleaned_date = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str)
     
     for fmt, _ in date_formats:
@@ -678,13 +1126,11 @@ def parse_date_from_string(date_str):
         except ValueError:
             continue
     
-    # Try with abbreviated month names
     month_map = {
         'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
         'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
     }
     
-    # Try pattern like "20 Aug 2026"
     match = re.match(r'(\d{1,2})\s+([a-zA-Z]{3,})\s+(\d{4})', date_str)
     if match:
         day = int(match.group(1))
@@ -701,21 +1147,9 @@ def parse_date_from_string(date_str):
     return None, "I couldn't understand the date format. Please use formats like '31/8/2026', '20-8-2026', 'today', 'tomorrow', or 'yesterday'."
 
 def parse_time_from_string(time_str):
-    """
-    Parse time from various formats including:
-    - 2:30 PM
-    - 14:30
-    - 2 PM
-    - 2
-    - 2:30pm
-    - 1430
-    - 9pm
-    - 9 PM
-    Returns (hour, minute, error_message)
-    """
+    """Parse time from various formats"""
     time_str = time_str.strip().lower()
     
-    # Handle special cases
     if time_str in ["now", "right now", "asap"]:
         now = datetime.now()
         return now.hour, now.minute, None
@@ -724,7 +1158,6 @@ def parse_time_from_string(time_str):
     elif time_str in ["midnight", "12 midnight"]:
         return 0, 0, None
     
-    # Check if it's a standalone number with AM/PM (like "9pm" or "9 am")
     match = re.match(r'^(\d{1,2})\s*(am|pm)$', time_str)
     if match:
         hour = int(match.group(1))
@@ -738,7 +1171,6 @@ def parse_time_from_string(time_str):
         else:
             return None, None, f"Invalid hour: {hour}. Please use a number between 1 and 12."
     
-    # Check if it's a standalone number (like "2")
     if re.match(r'^\d{1,2}$', time_str):
         hour = int(time_str)
         if hour < 0 or hour > 23:
@@ -750,15 +1182,14 @@ def parse_time_from_string(time_str):
         else:
             return hour, 0, None
     
-    # Try different time formats
     time_formats = [
-        ("%I:%M %p", True),   # 2:30 PM
-        ("%I:%M%p", True),    # 2:30PM
-        ("%I %p", True),      # 2 PM
-        ("%I%p", True),       # 2PM
-        ("%H:%M", False),     # 14:30
-        ("%H%M", False),      # 1430
-        ("%H", False),        # 14
+        ("%I:%M %p", True),
+        ("%I:%M%p", True),
+        ("%I %p", True),
+        ("%I%p", True),
+        ("%H:%M", False),
+        ("%H%M", False),
+        ("%H", False),
     ]
     
     for fmt, has_ampm in time_formats:
@@ -771,7 +1202,6 @@ def parse_time_from_string(time_str):
         except ValueError:
             continue
     
-    # Try with ":" but no AM/PM
     if ":" in time_str:
         parts = time_str.split(":")
         if len(parts) == 2:
@@ -793,18 +1223,13 @@ def parse_time_from_string(time_str):
     return None, None, "I couldn't understand the time format. Please use formats like '2:30 PM', '14:30', '9pm', or '2 PM'."
 
 def extract_date_time_from_text(text):
-    """
-    Extract date and time from natural language text.
-    Returns (date_str, time_str, service, error_message)
-    """
+    """Extract date and time from natural language text."""
     text_lower = text.lower()
     
-    # Default values
     date_str = None
     time_str = None
     service = "Aromatherapy Massage"
     
-    # Extract service type
     services = {
         "aromatherapy": "Aromatherapy Massage",
         "deep tissue": "Deep Tissue Massage",
@@ -820,11 +1245,10 @@ def extract_date_time_from_text(text):
             service = value
             break
     
-    # Extract date - SUPPORT 31/8/2026 format
     date_patterns = [
-        r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',  # 20/8/2026 or 20-8-2026 or 31/8/2026
-        r'(\d{1,2}\s+[a-zA-Z]{3,}\s+\d{4})',  # 20 Aug 2026
-        r'(\d{1,2}\s+[a-zA-Z]+\s+\d{4})',     # 20 August 2026
+        r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',
+        r'(\d{1,2}\s+[a-zA-Z]{3,}\s+\d{4})',
+        r'(\d{1,2}\s+[a-zA-Z]+\s+\d{4})',
         r'\b(today|todays|tomorrow|tmr|tomorow|yesterday|yest|yday|day after tomorrow|next week)\b',
     ]
     
@@ -834,7 +1258,6 @@ def extract_date_time_from_text(text):
             date_str = match.group(1) if match.groups() else match.group(0)
             break
     
-    # If no date found, check for keywords
     if not date_str:
         if "today" in text_lower or "todays" in text_lower:
             date_str = "today"
@@ -847,26 +1270,23 @@ def extract_date_time_from_text(text):
         elif "next week" in text_lower:
             date_str = "next week"
     
-    # Extract time - SUPPORT 9pm format
     time_patterns = [
-        r'(\d{1,2}:\d{2}\s*(?:am|pm)?)',  # 2:30 PM or 14:30
-        r'(\d{1,2}\s*(?:am|pm)\s*(?:o\'clock)?)',  # 2 PM or 2pm or 9pm
-        r'(\d{1,2}\s*o\'clock)',  # 2 o'clock
+        r'(\d{1,2}:\d{2}\s*(?:am|pm)?)',
+        r'(\d{1,2}\s*(?:am|pm)\s*(?:o\'clock)?)',
+        r'(\d{1,2}\s*o\'clock)',
         r'\b(noon|midday|midnight)\b',
         r'(\d{1,2})\s*(?:in the)?\s*(morning|afternoon|evening|night)',
-        r'(\d{1,2})(am|pm)',  # 9pm or 10am
+        r'(\d{1,2})(am|pm)',
     ]
     
     for pattern in time_patterns:
         match = re.search(pattern, text_lower, re.IGNORECASE)
         if match:
             time_str = match.group(1) if match.groups() else match.group(0)
-            # If we captured "9pm" with the pattern, make sure it's preserved
             if match.groups() and len(match.groups()) > 1:
                 time_str = match.group(1) + match.group(2)
             break
     
-    # If no time found, look for a standalone number (like "2")
     if not time_str:
         numbers = re.findall(r'\b(\d{1,2})\b', text_lower)
         for num in numbers:
@@ -889,23 +1309,17 @@ def extract_date_time_from_text(text):
     return date_str, time_str, service, None
 
 def validate_booking_datetime(booking_datetime, duration_minutes=60):
-    """
-    Validate booking datetime with comprehensive checks.
-    Returns (is_valid, error_message)
-    """
+    """Validate booking datetime with comprehensive checks."""
     now = datetime.now()
     today_date = now.date()
     booking_date = booking_datetime.date()
     
-    # Check if date is in the past
     if booking_date < today_date:
         return False, f"❌ I'm sorry, but {booking_datetime.strftime('%A, %B %d, %Y')} is in the past. Please select a future date for your spa appointment."
     
-    # Check if date is today but time is in the past
     if booking_date == today_date and booking_datetime < now:
         return False, f"❌ I'm sorry, but {booking_datetime.strftime('%I:%M %p')} has already passed today. Please select a later time."
     
-    # Check if booking is within operating hours (9 AM - 10 PM)
     if booking_datetime.hour < 9:
         return False, f"❌ I'm sorry, but our spa opens at 9:00 AM. {booking_datetime.strftime('%I:%M %p')} is too early. <br><br>💡 <i>Would you like me to book you for 9:00 AM instead?</i>"
     elif booking_datetime.hour >= 22:
@@ -915,15 +1329,11 @@ def validate_booking_datetime(booking_datetime, duration_minutes=60):
     
     return True, None
 
-
 # ==========================================
-# 4. Spa Booking & Cancellation System
+# Spa Booking & Cancellation System
 # ==========================================
 def is_spa_slot_available(booking_datetime, duration_minutes=60, exclude_booking=None):
-    """
-    Check if a spa time slot is available.
-    Returns (is_available, conflicting_bookings)
-    """
+    """Check if a spa time slot is available."""
     if booking_datetime < datetime.now():
         return False, "Past Booking"
     
@@ -984,9 +1394,7 @@ def get_available_spa_slots(date_obj=None, duration_minutes=60):
     return available_slots
 
 def book_spa_slot(guest_name, service, booking_datetime, duration_minutes=60):
-    """
-    Book a spa slot with email confirmation
-    """
+    """Book a spa slot with email confirmation"""
     if booking_datetime < datetime.now():
         return False, "❌ Booking date and time cannot be in the past. Please select a future date and time."
     
@@ -1009,7 +1417,6 @@ def book_spa_slot(guest_name, service, booking_datetime, duration_minutes=60):
         "duration": duration_minutes
     }
     
-    # --- SEND EMAIL CONFIRMATION ---
     booking_details = {
         'date': booking_datetime.strftime('%A, %B %d, %Y'),
         'time': booking_datetime.strftime('%I:%M %p'),
@@ -1017,7 +1424,6 @@ def book_spa_slot(guest_name, service, booking_datetime, duration_minutes=60):
         'duration': duration_minutes
     }
     
-    # Send email
     try:
         email_sent, email_message = send_booking_confirmation_email(
             booking_details, 
@@ -1040,15 +1446,11 @@ Please arrive 15 minutes early for your appointment.<br><br>
     
     return True, confirmation_message
 
-
 # ==========================================
-# 4.5. Cancel Booking Function
+# Cancel Booking Function
 # ==========================================
 def view_my_bookings(guest_name="Mr. Alexander Vance"):
-    """
-    View all bookings for a specific guest
-    Returns formatted string with all bookings
-    """
+    """View all bookings for a specific guest"""
     my_bookings = {}
     for slot, booking in st.session_state.spa_bookings.items():
         if booking["guest_name"] == guest_name:
@@ -1066,15 +1468,11 @@ def view_my_bookings(guest_name="Mr. Alexander Vance"):
     return message
 
 def cancel_spa_booking(time_str, guest_name="Mr. Alexander Vance"):
-    """
-    Cancel a spa booking by time with email confirmation
-    """
-    # Parse the time
+    """Cancel a spa booking by time with email confirmation"""
     hour, minute, error = parse_time_from_string(time_str)
     if error:
         return False, f"❌ {error}"
     
-    # Find the booking
     booking_to_cancel = None
     booking_key = None
     
@@ -1088,9 +1486,7 @@ def cancel_spa_booking(time_str, guest_name="Mr. Alexander Vance"):
             booking_key = slot
             break
     
-    # If booking not found, try to find by time string match
     if not booking_key:
-        # Try to match by time string in the booking
         time_str_lower = time_str.lower()
         for slot, booking in st.session_state.spa_bookings.items():
             if booking["guest_name"] != guest_name:
@@ -1108,7 +1504,6 @@ def cancel_spa_booking(time_str, guest_name="Mr. Alexander Vance"):
     if not booking_key:
         return False, f"❌ I couldn't find a booking at '{time_str}'. Please check your bookings by saying 'view my bookings'."
     
-    # Store booking details for email
     dt = datetime.strptime(booking_key, "%Y-%m-%d %H:%M")
     booking_details = {
         'date': dt.strftime('%A, %B %d, %Y'),
@@ -1117,10 +1512,8 @@ def cancel_spa_booking(time_str, guest_name="Mr. Alexander Vance"):
         'duration': booking_to_cancel['duration']
     }
     
-    # Cancel the booking
     del st.session_state.spa_bookings[booking_key]
     
-    # --- SEND CANCELLATION EMAIL ---
     try:
         email_sent, email_message = send_cancellation_email(
             booking_details, 
@@ -1140,18 +1533,32 @@ Your booking has been cancelled.<br><br>
 {email_status}
 """
 
-
 # ==========================================
-# 4.6. Extend Booking Function
+# Extend Booking Functions (WITH EMAIL)
 # ==========================================
 def extend_room_stay(extra_days, guest_name="Mr. Alexander Vance"):
-    """
-    Extend room stay by a number of days
-    Returns (success, message)
-    """
+    """Extend room stay by a number of days with email confirmation"""
     current_check_out = st.session_state.current_stay["check_out"]
     new_check_out = current_check_out + timedelta(days=extra_days)
     st.session_state.current_stay["check_out"] = new_check_out
+    
+    booking_details = {
+        'room': st.session_state.current_stay['room'],
+        'original_checkout': current_check_out.strftime('%A, %B %d, %Y'),
+        'new_checkout': new_check_out.strftime('%A, %B %d, %Y'),
+        'extra_days': extra_days,
+        'total_nights': (new_check_out - st.session_state.current_stay['check_in']).days
+    }
+    
+    try:
+        email_sent, email_message = send_room_extend_email(
+            booking_details,
+            guest_name,
+            st.session_state.guest_email
+        )
+        email_status = email_message
+    except Exception as e:
+        email_status = "ℹ️ Email notification: Please provide your email address for future confirmations."
     
     return True, f"""
 🏨 <strong>🏠 Room Stay Extended Successfully!</strong><br><br>
@@ -1163,20 +1570,16 @@ def extend_room_stay(extra_days, guest_name="Mr. Alexander Vance"):
     📆 <strong>Extended by:</strong> {extra_days} day{'s' if extra_days > 1 else ''}<br>
     💵 <strong>Total Nights:</strong> {(new_check_out - st.session_state.current_stay['check_in']).days} nights<br>
 </div>
-<br>💡 <i>Your room extension has been confirmed. Housekeeping has been notified of your new check-out date.</i>
+<br>💡 <i>Your room extension has been confirmed. Housekeeping has been notified of your new check-out date.</i><br><br>
+{email_status}
 """
 
 def extend_spa_booking(time_str, new_date_str, guest_name="Mr. Alexander Vance"):
-    """
-    Extend a spa booking to a new date
-    Returns (success, message)
-    """
-    # Parse the current booking time
+    """Extend a spa booking to a new date with email confirmation"""
     hour, minute, error = parse_time_from_string(time_str)
     if error:
         return False, f"❌ {error}"
     
-    # Find the booking
     booking_to_extend = None
     booking_key = None
     
@@ -1193,19 +1596,15 @@ def extend_spa_booking(time_str, new_date_str, guest_name="Mr. Alexander Vance")
     if not booking_key:
         return False, f"❌ I couldn't find a booking at '{time_str}'. Please check your bookings by saying 'view my bookings'."
     
-    # Parse the new date
     date_obj, date_error = parse_date_from_string(new_date_str)
     if date_error:
         return False, f"❌ {date_error}"
     
-    # Create new datetime
     new_datetime = date_obj.replace(hour=hour, minute=minute, second=0, microsecond=0)
     
-    # Validate new date is in the future
     if new_datetime < datetime.now():
         return False, "❌ The new date must be in the future. Please select a future date."
     
-    # Check if the new slot is available
     is_available, conflict = is_spa_slot_available(new_datetime, booking_to_extend["duration"], exclude_booking=booking_key)
     
     if not is_available:
@@ -1214,13 +1613,31 @@ def extend_spa_booking(time_str, new_date_str, guest_name="Mr. Alexander Vance")
         else:
             return False, "❌ The new time slot is not available. Please choose a different date or time."
     
-    # Cancel the old booking and create a new one
+    old_dt = datetime.strptime(booking_key, "%Y-%m-%d %H:%M")
+    
     del st.session_state.spa_bookings[booking_key]
     
     new_slot_key = new_datetime.strftime("%Y-%m-%d %H:%M")
     st.session_state.spa_bookings[new_slot_key] = booking_to_extend
     
-    old_dt = datetime.strptime(booking_key, "%Y-%m-%d %H:%M")
+    booking_details = {
+        'old_date': old_dt.strftime('%A, %B %d, %Y'),
+        'old_time': old_dt.strftime('%I:%M %p'),
+        'new_date': new_datetime.strftime('%A, %B %d, %Y'),
+        'new_time': new_datetime.strftime('%I:%M %p'),
+        'service': booking_to_extend['service'],
+        'duration': booking_to_extend['duration']
+    }
+    
+    try:
+        email_sent, email_message = send_spa_extend_email(
+            booking_details,
+            guest_name,
+            st.session_state.guest_email
+        )
+        email_status = email_message
+    except Exception as e:
+        email_status = "ℹ️ Email notification: Please provide your email address for future confirmations."
     
     return True, f"""
 🧖‍♀️ <strong>💆 Spa Booking Extended Successfully!</strong><br><br>
@@ -1232,34 +1649,28 @@ def extend_spa_booking(time_str, new_date_str, guest_name="Mr. Alexander Vance")
     💆 <strong>Service:</strong> {booking_to_extend['service']}<br>
     ⏱️ <strong>Duration:</strong> {booking_to_extend['duration']} minutes<br>
 </div>
-<br>💡 <i>Your spa booking has been successfully moved to the new date. Please arrive 15 minutes early for your appointment!</i>
+<br>💡 <i>Your spa booking has been successfully moved to the new date. Please arrive 15 minutes early for your appointment!</i><br><br>
+{email_status}
 """
 
 def process_extend_booking(user_input):
-    """
-    Process booking extension request
-    """
-    # --- Check if it's a room extension ---
+    """Process booking extension request"""
     room_keywords = [
         "room", "stay", "check-out", "checkout", "住宿", "房间", "退房", 
         "hotel", "suite", "penthouse", "room booking", "stay booking"
     ]
     is_room_extend = any(keyword in user_input.lower() for keyword in room_keywords)
     
-    # --- Check if it's a spa extension ---
     spa_keywords = ["spa", "massage", "facial", "appointment", "预约", "spa"]
     is_spa_extend = any(keyword in user_input.lower() for keyword in spa_keywords)
     
-    # --- Check for days in the input ---
     days_match = re.search(r'(\d+)\s*(day|days|night|nights)', user_input.lower())
     if days_match:
         extra_days = int(days_match.group(1))
     else:
-        # If user explicitly said "extend room booking" without days
         if is_room_extend:
             return "📅 How many additional days would you like to extend your room stay? (e.g., '2 days' or '3 nights')"
         elif is_spa_extend:
-            # For spa, we need time and new date
             time_patterns = [
                 r'(\d{1,2}):(\d{2})\s*(?:am|pm)?',
                 r'(\d{1,2})\s*(?:am|pm)',
@@ -1290,7 +1701,6 @@ def process_extend_booking(user_input):
             if not time_str:
                 return "🕐 Please tell me the time of the spa booking you'd like to extend (e.g., '2 PM' or '10:30 AM')"
             
-            # Also need the new date
             date_str, _, _, _ = extract_date_time_from_text(user_input)
             if not date_str:
                 return "📅 Please tell me the new date for your spa booking (e.g., 'tomorrow' or '20/8/2026')"
@@ -1298,7 +1708,6 @@ def process_extend_booking(user_input):
             success, message = extend_spa_booking(time_str, date_str)
             return message
         else:
-            # Generic extend without specifying room or spa
             return """📋 I can help you extend either your <strong>room stay</strong> or your <strong>spa booking</strong>.
 
 Please specify what you'd like to extend:
@@ -1307,20 +1716,15 @@ Please specify what you'd like to extend:
 
 💡 <i>For room extensions, I'll update your check-out date. For spa extensions, I'll move your booking to a new date.</i>"""
     
-    # Validate days
     if extra_days < 1:
         return "❌ Please specify a valid number of days to extend (at least 1 day)."
     if extra_days > 30:
         return "❌ I'm sorry, but we can only extend bookings by up to 30 days at a time. Please contact the front desk for longer extensions."
     
-    # --- If it's a room extension with days, do it immediately ---
     if is_room_extend:
         success, message = extend_room_stay(extra_days)
         return message
-    
-    # --- If it's a spa extension with days, process it ---
     elif is_spa_extend:
-        # Need the time and new date
         time_patterns = [
             r'(\d{1,2}):(\d{2})\s*(?:am|pm)?',
             r'(\d{1,2})\s*(?:am|pm)',
@@ -1351,7 +1755,6 @@ Please specify what you'd like to extend:
         if not time_str:
             return "🕐 Please tell me the time of the spa booking you'd like to extend (e.g., '2 PM' or '10:30 AM')"
         
-        # Get new date
         date_str, _, _, _ = extract_date_time_from_text(user_input)
         if not date_str:
             return "📅 Please tell me the new date for your spa booking (e.g., 'tomorrow' or '20/8/2026')"
@@ -1367,9 +1770,8 @@ Please specify what you'd like to extend:
 
 💡 <i>For room extensions, I'll update your check-out date. For spa extensions, I'll move your booking to a new date.</i>"""
 
-
 # ==========================================
-# 5. Real-Time Weather API Integration with Attractions
+# Real-Time Weather API Integration with Attractions
 # ==========================================
 def get_realtime_weather():
     """Fetches real-time weather using Open-Meteo API with WMO translation and attraction suggestions."""
@@ -1569,9 +1971,8 @@ def get_attraction_suggestions_with_links(weather_type, temperature):
     
     return attractions.get(weather_type, attractions["pleasant"])
 
-
 # ==========================================
-# 6. Internal Call & VIP Pass Card Generators
+# Internal Call & VIP Pass Card Generators
 # ==========================================
 def render_internal_call_card():
     """Generates the hotel direct internal call card component."""
@@ -1631,9 +2032,8 @@ def render_spa_vip_pass(booking_details):
 </div>
 """
 
-
 # ==========================================
-# 7. ML Classifier & Response Pipeline
+# ML Classifier & Response Pipeline
 # ==========================================
 LUXURY_RESPONSES = {
     "greet": "Greetings! It is my absolute pleasure to welcome you to The Grand Apex Resort & Spa. How may I be of service to you today?",
@@ -1768,13 +2168,11 @@ def load_and_train_model():
                 X.append(cleaned_pattern)
                 y.append(tag)
 
-    # Internal Call Training Samples
     call_patterns = ["call front desk", "call butler", "internal call", "phone number", "contact housekeeping", "call hotel", "dial front desk", "phone front desk", "打电话", "联系前台", "呼叫管家", "打给前台", "内线电话"]
     for p in call_patterns:
         X.append(clean_text(p))
         y.append("internal_call")
 
-    # Services Training Samples
     service_patterns = [
         "what services do you have", "what services", "hotel services", "services", 
         "what amenities are available", "amenities", "what can I do at this hotel", 
@@ -1785,7 +2183,6 @@ def load_and_train_model():
         X.append(clean_text(p))
         y.append("ask_services")
 
-    # Spa Menu & Pricing Samples
     spa_patterns = [
         "spa", "spa price", "spa pricing", "how much is spa", "spa menu", 
         "spa hours", "when is spa open", "massage", "massage price", "spa price list",
@@ -1803,7 +2200,6 @@ def load_and_train_model():
         X.append(clean_text(p))
         y.append("ask_spa_booking")
 
-    # Weather patterns
     weather_patterns = [
         "weather", "weather forecast", "today weather", "tomorrow weather", 
         "what is the weather", "how is the weather", "weather today", 
@@ -1815,7 +2211,6 @@ def load_and_train_model():
         X.append(clean_text(p))
         y.append("ask_weather")
 
-    # Attractions patterns
     attractions_patterns = [
         "what to do in kuala lumpur", "tourist attractions", "places to visit",
         "sightseeing", "tourist spots", "things to do", "吉隆坡有什么好玩的",
@@ -1825,7 +2220,6 @@ def load_and_train_model():
         X.append(clean_text(p))
         y.append("ask_attractions")
 
-    # Cancel booking patterns
     cancel_patterns = [
         "cancel booking", "cancel my booking", "cancel spa", "cancel appointment",
         "我要取消预约", "取消spa", "取消预订"
@@ -1834,7 +2228,6 @@ def load_and_train_model():
         X.append(clean_text(p))
         y.append("cancel_booking")
 
-    # View bookings patterns
     view_patterns = [
         "view my bookings", "show my bookings", "my bookings", "view appointments",
         "查看我的预约", "我的预约", "预约记录"
@@ -1843,7 +2236,6 @@ def load_and_train_model():
         X.append(clean_text(p))
         y.append("view_bookings")
 
-    # Extend booking patterns
     extend_patterns = [
         "extend booking", "extend stay", "extend my stay", "extend room",
         "extend appointment", "延长住宿", "延长预约", "延期"
@@ -1869,43 +2261,32 @@ def load_and_train_model():
 model = load_and_train_model()
 
 def process_spa_booking(user_input):
-    """
-    Process spa booking request with enhanced date/time validation
-    """
-    # Extract date, time, and service from user input
+    """Process spa booking request with enhanced date/time validation"""
     date_str, time_str, service, error = extract_date_time_from_text(user_input)
     
-    # If there's an error in extraction
     if error:
         return f"❌ {error}"
     
-    # Check if date was provided
     if not date_str:
         return "📅 I need a date for your spa booking. Please tell me the date (e.g., '31/8/2026', 'today', or 'tomorrow') and I'll check availability!"
     
-    # Check if time was provided
     if not time_str:
         return "🕐 I need a time for your spa booking. Please tell me the time (e.g., '2:30 PM', '14:30', '9pm', or '2 PM') and I'll check availability!"
     
-    # Parse the date
     date_obj, date_error = parse_date_from_string(date_str)
     if date_error:
         return f"❌ {date_error}"
     
-    # Parse the time
     hour, minute, time_error = parse_time_from_string(time_str)
     if time_error:
         return f"❌ {time_error}"
     
-    # Combine date and time
     booking_datetime = date_obj.replace(hour=hour, minute=minute, second=0, microsecond=0)
     
-    # --- DATE VALIDATION ---
     now = datetime.now()
     today_date = now.date()
     booking_date = booking_datetime.date()
     
-    # Show a friendly message if date is in the past
     if booking_date < today_date:
         return f"""❌ <strong>Invalid Date</strong><br><br>
 I'm sorry, but <strong>{booking_datetime.strftime('%A, %B %d, %Y')}</strong> is in the past.<br><br>
@@ -1916,7 +2297,6 @@ I'm sorry, but <strong>{booking_datetime.strftime('%A, %B %d, %Y')}</strong> is 
 • "next week Friday at 3 PM"
 """
     
-    # Check if date is today but time is in the past
     if booking_date == today_date and booking_datetime < now:
         return f"""❌ <strong>Time Has Passed</strong><br><br>
 I'm sorry, but <strong>{booking_datetime.strftime('%I:%M %p')}</strong> has already passed today.<br><br>
@@ -1926,7 +2306,6 @@ I'm sorry, but <strong>{booking_datetime.strftime('%I:%M %p')}</strong> has alre
 • "tomorrow at 10 AM"
 """
     
-    # Check if booking is within operating hours (9 AM - 10 PM)
     if booking_datetime.hour < 9:
         return f"""❌ <strong>Too Early</strong><br><br>
 I'm sorry, but our spa opens at <strong>9:00 AM</strong>. {booking_datetime.strftime('%I:%M %p')} is too early.<br><br>
@@ -1944,7 +2323,6 @@ I'm sorry, but our spa closes at <strong>10:00 PM</strong>. {booking_datetime.st
 • "7 PM"
 """
     
-    # --- TIME SLOT AVAILABILITY CHECK ---
     is_available, conflict = is_spa_slot_available(booking_datetime, 60)
     
     if not is_available:
@@ -1970,7 +2348,6 @@ I'm sorry, but the time slot <strong>{booking_datetime.strftime('%A, %B %d at %I
 • "5 PM"
 """
     
-    # --- CONFIRM BOOKING ---
     success, message = book_spa_slot("Mr. Alexander Vance", service, booking_datetime, 60)
     
     if success:
@@ -1981,19 +2358,14 @@ I'm sorry, but the time slot <strong>{booking_datetime.strftime('%A, %B %d at %I
         return message
 
 def process_cancel_booking(user_input):
-    """
-    Process booking cancellation request
-    """
-    # Check if user wants to view bookings first
+    """Process booking cancellation request"""
     view_keywords = ["view", "show", "list", "see", "display", "查看", "显示", "列表", "我的预约"]
     if any(keyword in user_input.lower() for keyword in view_keywords) and "cancel" not in user_input.lower():
         return view_my_bookings()
     
-    # If user just said "booking" or "my booking" without cancel/view context
     if user_input.lower().strip() in ["booking", "my booking", "bookings", "my bookings"]:
         return "📋 Would you like to <strong>view your bookings</strong> or <strong>cancel a booking</strong>? Please specify what you'd like to do."
     
-    # Try to extract time from the input
     time_patterns = [
         r'(\d{1,2}):(\d{2})\s*(?:am|pm)?',
         r'(\d{1,2})\s*(?:am|pm)',
@@ -2001,7 +2373,7 @@ def process_cancel_booking(user_input):
         r'at\s+(\d{1,2})\s*(?:am|pm)?',
         r'for\s+(\d{1,2})\s*(?:am|pm)?',
         r'(\d{1,2})\s*(?:am|pm)\s*(?:booking|appointment)?',
-        r'(\d{1,2})(am|pm)',  # 9pm or 10am
+        r'(\d{1,2})(am|pm)',
     ]
     
     time_str = None
@@ -2036,7 +2408,6 @@ def process_cancel_booking(user_input):
     return message
 
 def get_bot_response(user_input):
-    # Check and correct spelling
     corrected_input, was_corrected = spell_check_and_correct(user_input)
     
     if was_corrected and corrected_input != user_input:
@@ -2049,12 +2420,6 @@ def get_bot_response(user_input):
     if not cleaned_input or not cleaned_input.strip():
         return "Greetings! How may I assist your stay at The Grand Apex today?"
 
-    # ==========================================
-    # SPA BOOKING DATE + TIME DETECTION
-    # ==========================================
-    # Use corrected_input instead of cleaned_input here.
-    # clean_text() removes "/" and "-" from dates.
-    # Example: 31/8/2026 9pm must remain unchanged.
     booking_text = corrected_input.lower().strip()
 
     date_patterns = [
@@ -2082,11 +2447,8 @@ def get_bot_response(user_input):
         for pattern in time_patterns
     )
 
-    # Do NOT treat standalone numbers as time.
-    # Otherwise 31/8/2026 can be mistaken for an hour.
     is_spa_booking_likely = has_date and has_time
 
-    # Date + time ALWAYS goes to spa booking first.
     if is_spa_booking_likely:
         result = process_spa_booking(corrected_input)
 
@@ -2106,7 +2468,6 @@ def get_bot_response(user_input):
 
         return correction_note + result
 
-    # --- WEATHER: reached only when input is NOT a spa date + time booking ---
     weather_keywords = [
         "weather", "temperature", "forecast", "rain", "sunny", "cloudy", 
         "hot", "cold", "warm", "humid", "degrees", "°c", "°f",
@@ -2120,7 +2481,6 @@ def get_bot_response(user_input):
         weather_res = get_realtime_weather()
         return correction_note + weather_res["weather_response"] + "|||" + weather_res["attraction_response"]
 
-    # --- Check if this is a SPA BOOKING request (without date/time) ---
     spa_booking_phrases = ["spa booking", "booking spa", "book spa", "reserve spa"]
     is_spa_booking_phrase = any(phrase in cleaned_input.lower() for phrase in spa_booking_phrases)
     
@@ -2135,7 +2495,6 @@ def get_bot_response(user_input):
             st.session_state.awaiting_spa_booking = False
         return correction_note + result
 
-    # --- Check if this is a EXTEND BOOKING request ---
     extend_keywords = [
         "extend", "延长", "延期", "extend my stay", "extend booking",
         "extend room", "extend appointment", "add days", "add more days",
@@ -2153,7 +2512,6 @@ def get_bot_response(user_input):
             st.session_state.awaiting_extend_booking = False
         return correction_note + result
 
-    # --- Check if this is in extend booking context ---
     if st.session_state.awaiting_extend_booking:
         result = process_extend_booking(user_input)
         if "How many additional days" in result or "Please tell me the time" in result or "Please tell me the new date" in result:
@@ -2162,7 +2520,6 @@ def get_bot_response(user_input):
             st.session_state.awaiting_extend_booking = False
         return correction_note + result
 
-    # --- Check if this is a VIEW BOOKINGS request ---
     view_keywords = [
         "view my bookings", "show my bookings", "my bookings", "my reservation",
         "view appointments", "show appointments", "list my bookings",
@@ -2174,7 +2531,6 @@ def get_bot_response(user_input):
     if is_view_request:
         return correction_note + view_my_bookings()
 
-    # --- Check if this is a CANCEL BOOKING request ---
     cancel_keywords = [
         "cancel my", "cancel this", "cancel the", "cancel booking",
         "取消我的", "取消预约", "取消预订", "cancellation",
@@ -2192,7 +2548,6 @@ def get_bot_response(user_input):
             st.session_state.awaiting_cancel_booking = True
         return correction_note + result
 
-    # --- Check if this is in cancel booking context ---
     if st.session_state.awaiting_cancel_booking:
         st.session_state.awaiting_cancel_booking = False
         result = process_cancel_booking(user_input)
@@ -2200,7 +2555,6 @@ def get_bot_response(user_input):
             st.session_state.awaiting_cancel_booking = True
         return correction_note + result
 
-    # --- If in spa booking context (user was previously booking) ---
     if st.session_state.awaiting_spa_booking:
         st.session_state.awaiting_spa_booking = False
         result = process_spa_booking(user_input)
@@ -2257,9 +2611,8 @@ def get_bot_response(user_input):
     except Exception as e:
         return "I am at your service. Please feel free to ask about our room amenities, dining, or guest services."
 
-
 # ==========================================
-# 8. Styling Injection (Bright Luxury Theme)
+# Styling Injection (Bright Luxury Theme)
 # ==========================================
 st.markdown("""
 <style>
@@ -2479,9 +2832,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
 # ==========================================
-# 9. PAGE 1: Luxury Dashboard & Banner Slider
+# PAGE 1: Luxury Dashboard & Banner Slider
 # ==========================================
 if st.session_state.page == "dashboard":
     weather_data = get_realtime_weather()
@@ -2597,9 +2949,8 @@ if st.session_state.page == "dashboard":
             navigate_to("chat")
             st.rerun()
 
-
 # ==========================================
-# 10. PAGE 2: Left/Right Chat Interface
+# PAGE 2: Left/Right Chat Interface
 # ==========================================
 elif st.session_state.page == "chat":
     top_c1, top_c2 = st.columns([4, 1])
@@ -2699,14 +3050,12 @@ elif st.session_state.page == "chat":
             # Check if response has split marker for weather
             if "|||" in response_text:
                 parts = response_text.split("|||")
-                # Send first response (weather)
                 if parts[0].strip():
                     st.session_state.messages.append({
                         "role": "assistant", 
                         "content": parts[0].strip(),
                         "time": current_time
                     })
-                # Send second response (attractions) - only if it exists and is not empty
                 if len(parts) > 1 and parts[1].strip():
                     st.session_state.messages.append({
                         "role": "assistant", 
@@ -2714,7 +3063,6 @@ elif st.session_state.page == "chat":
                         "time": current_time
                     })
             else:
-                # Normal single response
                 st.session_state.messages.append({
                     "role": "assistant", 
                     "content": response_text,
