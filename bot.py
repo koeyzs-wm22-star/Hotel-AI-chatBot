@@ -27,8 +27,8 @@ from email.mime.multipart import MIMEMultipart
 EMAIL_CONFIG = {
     "smtp_server": "smtp.gmail.com",
     "smtp_port": 587,
-    "sender_email": "marcusha1220@gmail.com",  # Your Gmail
-    "sender_password": "ssgc ddku aqvv dpiz",   # Your App Password
+    "sender_email": "koeyzs-wm22@student.tarc.edu.my",  # Your Gmail
+    "sender_password": "qxis rtkl cokw hndy",   # Your App Password
     "sender_name": "The Grand Apex Resort & Spa",
     "use_smtp": True
 }
@@ -407,10 +407,17 @@ def get_cancellation_email_html(booking_details, guest_name):
     </html>
     """
 
-def send_booking_confirmation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email="marcusha1220@gmail.com"):
+def send_booking_confirmation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email=None):
     """
     Send booking confirmation email using SMTP
     """
+    # Use session_state email if none is passed explicitly
+    if not guest_email:
+        guest_email = st.session_state.get("guest_email", "")
+
+    if not guest_email:
+        return False, "⚠️ No valid email address provided."
+
     try:
         # Create email
         msg = MIMEMultipart('alternative')
@@ -430,15 +437,22 @@ def send_booking_confirmation_email(booking_details, guest_name="Mr. Alexander V
             server.login(EMAIL_CONFIG['sender_email'], EMAIL_CONFIG['sender_password'])
             server.send_message(msg)
         
-        return True, "📧 Booking confirmation email sent to your registered email address!"
+        return True, f"📧 Booking confirmation email sent to {guest_email}!"
     
     except Exception as e:
         return False, f"⚠️ Email could not be sent: {str(e)}"
 
-def send_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email="marcusha1220@gmail.com"):
+
+def send_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email=None):
     """
     Send booking cancellation email to customer
     """
+    if not guest_email:
+        guest_email = st.session_state.get("guest_email", "")
+
+    if not guest_email:
+        return False, "⚠️ No valid email address provided."
+
     try:
         # Create email
         msg = MIMEMultipart('alternative')
@@ -458,11 +472,22 @@ def send_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", g
             server.login(EMAIL_CONFIG['sender_email'], EMAIL_CONFIG['sender_password'])
             server.send_message(msg)
         
-        return True, "📧 Cancellation confirmation email sent to your registered email address!"
+        return True, f"📧 Cancellation confirmation email sent to {guest_email}!"
     
     except Exception as e:
         return False, f"⚠️ Cancellation email could not be sent: {str(e)}"
 
+# Add this inside your Dashboard layout (e.g., near the Guest Info Banner) or in a sidebar:
+user_email_input = st.text_input(
+    "📧 Preferred Email for Confirmations:",
+    value=st.session_state.guest_email,
+    placeholder="enter.your.email@domain.com"
+)
+
+# Store user input dynamically in session state
+if user_email_input:
+    st.session_state.guest_email = user_email_input
+    
 # ==========================================
 # 1. Page Config & Session State Setup
 # ==========================================
@@ -500,9 +525,9 @@ if "awaiting_extend_booking" not in st.session_state:
 if "latest_spa_booking" not in st.session_state:
     st.session_state.latest_spa_booking = None
 
-# Guest Email
+# Guest Email (Defaults to empty string for user input)
 if "guest_email" not in st.session_state:
-    st.session_state.guest_email = "marcusha1220@gmail.com"
+    st.session_state.guest_email = ""
 
 # Room Stay Information
 if "current_stay" not in st.session_state:
