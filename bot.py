@@ -618,18 +618,12 @@ room_details = {
 guest_name = current_stay.get("guest", "Mr. Alexander Vance")
 guest_email = st.session_state.get("guest_email", "")
 
-# Trigger email ONLY if it hasn't been sent yet
-if guest_email and not st.session_state.room_email_sent:
-    success, message = send_room_confirmation_email(
-        booking_details=room_details,
-        guest_name=guest_name,
-        guest_email=guest_email
-    )
-    if success:
-        st.session_state.room_email_sent = True  # Locks future duplicate triggers
-        st.success(message)
-    else:
-        st.error(message)
+# CORRECT WAY: Binding directly to session state
+st.text_input(
+    "📧 Preferred Email for Confirmations:",
+    key="guest_email",  # <-- Automatically syncs typed text to st.session_state.guest_email
+    placeholder="enter.your.email@domain.com"
+)
 
 # Safer text input implementation using .get()
 user_email_input = st.text_input(
