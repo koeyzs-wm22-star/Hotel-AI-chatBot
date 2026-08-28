@@ -594,11 +594,23 @@ def send_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", g
     except Exception as e:
         return False, f"⚠️ Cancellation email could not be sent: {str(e)}"
 
-# Initialize lock flag at top of bot.py
+# 1. Initialize lock flag at top of bot.py
 if "room_email_sent" not in st.session_state:
     st.session_state.room_email_sent = False
 
-# Code block execution
+# 2. Define callback to unlock email sending when the email input changes
+def reset_email_flag():
+    st.session_state.room_email_sent = False
+
+# 3. Render Text Input FIRST with key and on_change callback
+st.text_input(
+    "📧 Preferred Email for Confirmations:",
+    key="guest_email",  # Automatically syncs typed text to st.session_state.guest_email
+    placeholder="enter.your.email@domain.com",
+    on_change=reset_email_flag  # Resets the lock flag when user changes email
+)
+
+# 4. Fetch details & format room state
 current_stay = st.session_state.get("current_stay", {})
 default_check_in = datetime(2026, 7, 28)
 default_check_out = datetime(2026, 8, 3)
@@ -616,14 +628,23 @@ room_details = {
 }
 
 guest_name = current_stay.get("guest", "Mr. Alexander Vance")
-guest_email = st.session_state.get("guest_email", "")
+guest_email = st.session_state.get("guest_email", "").strip()
 
-# CORRECT WAY: Binding directly to session state
-st.text_input(
-    "📧 Preferred Email for Confirmations:",
-    key="guest_email",  # <-- Automatically syncs typed text to st.session_state.guest_email
-    placeholder="enter.your.email@domain.com"
-)
+# 5. Trigger email sending inside a dedicated Action Button or execution block
+if st.button("📧 Send / Resend Extension Confirmation"):
+    if guest_email and not st.session_state.room_email_sent:
+        success, message = send_room_confirmation_email(
+            booking_details=room_details,
+            guest_name=guest_name,
+            guest_email=guest_email
+        )
+        if success:
+            st.session_state.room_email_sent = True  # Locks duplicate runs for this specific email
+            st.success(message)
+        else:
+            st.error(message)
+    elif not guest_email:
+        st.warning("⚠️ Please enter a valid email address.")
 
 # Safer text input implementation using .get()
 user_email_input = st.text_input(
