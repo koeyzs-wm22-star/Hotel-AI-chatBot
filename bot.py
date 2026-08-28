@@ -27,8 +27,8 @@ from email.mime.multipart import MIMEMultipart
 EMAIL_CONFIG = {
     "smtp_server": "smtp.gmail.com",
     "smtp_port": 587,
-    "sender_email": "marcusha1220@gmail.com",  # Your Gmail
-    "sender_password": "ssgc ddku aqvv dpiz",   # Your App Password
+    "sender_email": "koeyzs-wm22@student.tarc.edu.my",  # Your Gmail
+    "sender_password": "qxis rtkl cokw hndy",   # Your App Password
     "sender_name": "The Grand Apex Resort & Spa",
     "use_smtp": True
 }
