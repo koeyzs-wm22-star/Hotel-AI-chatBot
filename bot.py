@@ -594,59 +594,17 @@ def send_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", g
     except Exception as e:
         return False, f"⚠️ Cancellation email could not be sent: {str(e)}"
 
-# 1. Initialize lock flag at top of bot.py (run once)
-if "room_email_sent" not in st.session_state:
-    st.session_state.room_email_sent = False
 
-# 2. Define callback to unlock email sending when the email input changes
-def reset_email_flag():
-    st.session_state.room_email_sent = False
-
-# 3. Render Text Input ONLY ONCE with key and on_change callback
-st.text_input(
+# Safer text input implementation using .get()
+user_email_input = st.text_input(
     "📧 Preferred Email for Confirmations:",
-    key="guest_email",  # Automatically syncs typed text to st.session_state.guest_email
-    placeholder="enter.your.email@domain.com",
-    on_change=reset_email_flag  # Resets the lock flag when user updates their email
+    value=st.session_state.get("guest_email", ""),
+    placeholder="enter.your.email@domain.com"
 )
 
-# 4. Fetch details & format room stay data dynamically
-current_stay = st.session_state.get("current_stay", {})
-default_check_in = datetime(2026, 7, 28)
-default_check_out = datetime(2026, 8, 3)
-
-check_in_val = current_stay.get("check_in") or default_check_in
-check_out_val = current_stay.get("check_out") or default_check_out
-
-check_in_str = check_in_val.strftime("%Y-%m-%d") if hasattr(check_in_val, "strftime") else str(check_in_val)
-check_out_str = check_out_val.strftime("%Y-%m-%d") if hasattr(check_out_val, "strftime") else str(check_out_val)
-
-room_details = {
-    "check_in": check_in_str,
-    "check_out": check_out_str,
-    "room": current_stay.get("room", "Penthouse 1808")
-}
-
-guest_name = current_stay.get("guest", "Mr. Alexander Vance")
-guest_email = st.session_state.get("guest_email", "").strip()
-
-# 5. Trigger room confirmation email sending via action button
-if st.button("📧 Send / Resend Extension Confirmation"):
-    if guest_email and not st.session_state.room_email_sent:
-        success, message = send_room_confirmation_email(
-            booking_details=room_details,
-            guest_name=guest_name,
-            guest_email=guest_email
-        )
-        if success:
-            st.session_state.room_email_sent = True  # Locks duplicate runs for this email address
-            st.success(message)
-        else:
-            st.error(message)
-    elif st.session_state.room_email_sent:
-        st.info("ℹ️ Confirmation email has already been sent to this address.")
-    elif not guest_email:
-        st.warning("⚠️ Please enter a valid email address.")
+# Save user input back to state
+if user_email_input:
+    st.session_state.guest_email = user_email_input
     
 # ==========================================
 # 1. Page Config & Session State Setup
