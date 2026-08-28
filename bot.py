@@ -434,6 +434,90 @@ def get_cancellation_email_html(booking_details, guest_name):
     </body>
     </html>
     """
+    def get_room_email_html(booking_details, guest_name):
+    """HTML content for room stay confirmation."""
+    return f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; color: #333;">
+        <h2 style="color: #8C6B2D;">The Grand Apex Resort & Spa</h2>
+        <h3>Room Booking Confirmation</h3>
+        <p>Dear {guest_name},</p>
+        <p>Your room reservation has been successfully updated or confirmed.</p>
+        <ul>
+          <li><strong>Room:</strong> {booking_details.get('room', 'Penthouse')}</li>
+          <li><strong>Check-In Date:</strong> {booking_details['check_in']}</li>
+          <li><strong>Check-Out Date:</strong> {booking_details['check_out']}</li>
+        </ul>
+        <p>We look forward to welcoming you!</p>
+      </body>
+    </html>
+    """
+
+def get_room_cancellation_email_html(booking_details, guest_name):
+    """HTML content for room stay cancellation."""
+    return f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; color: #333;">
+        <h2 style="color: #8C6B2D;">The Grand Apex Resort & Spa</h2>
+        <h3>Room Booking Cancellation</h3>
+        <p>Dear {guest_name},</p>
+        <p>Your room reservation for <strong>{booking_details.get('room', 'Penthouse')}</strong> starting on <strong>{booking_details['check_in']}</strong> has been cancelled.</p>
+        <p>If this was done in error, please contact our front desk immediately.</p>
+      </body>
+    </html>
+    """
+def send_room_confirmation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email=None):
+    """Send room booking confirmation email using SMTP."""
+    if not guest_email:
+        guest_email = st.session_state.get("guest_email", "")
+
+    if not guest_email:
+        return False, "⚠️ No valid email address provided."
+
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['From'] = f"{EMAIL_CONFIG['sender_name']} <{EMAIL_CONFIG['sender_email']}>"
+        msg['To'] = guest_email
+        msg['Subject'] = f"✅ The Grand Apex - Room Booking Confirmation - {booking_details['check_in']}"
+        
+        html_content = get_room_email_html(booking_details, guest_name)
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        with smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port']) as server:
+            server.starttls(context=ssl.create_default_context())
+            server.login(EMAIL_CONFIG['sender_email'], EMAIL_CONFIG['sender_password'])
+            server.send_message(msg)
+        
+        return True, f"📧 Room confirmation email sent to {guest_email}!"
+    except Exception as e:
+        return False, f"⚠️ Room email could not be sent: {str(e)}"
+
+
+def send_room_cancellation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email=None):
+    """Send room booking cancellation email using SMTP."""
+    if not guest_email:
+        guest_email = st.session_state.get("guest_email", "")
+
+    if not guest_email:
+        return False, "⚠️ No valid email address provided."
+
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['From'] = f"{EMAIL_CONFIG['sender_name']} <{EMAIL_CONFIG['sender_email']}>"
+        msg['To'] = guest_email
+        msg['Subject'] = f"❌ The Grand Apex - Room Booking Cancelled - {booking_details['check_in']}"
+        
+        html_content = get_room_cancellation_email_html(booking_details, guest_name)
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        with smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port']) as server:
+            server.starttls(context=ssl.create_default_context())
+            server.login(EMAIL_CONFIG['sender_email'], EMAIL_CONFIG['sender_password'])
+            server.send_message(msg)
+        
+        return True, f"📧 Room cancellation email sent to {guest_email}!"
+    except Exception as e:
+        return False, f"⚠️ Room cancellation email could not be sent: {str(e)}"
 
 def send_booking_confirmation_email(booking_details, guest_name="Mr. Alexander Vance", guest_email=None):
     """
